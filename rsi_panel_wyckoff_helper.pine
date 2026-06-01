@@ -1,0 +1,32 @@
+//@version=5
+indicator("Panel RSI Wyckoff Helper v2.0", shorttitle="RSI Panel Wyckoff", overlay=false)
+
+preset = input.string("15m", "Preset", options=["15m", "1h RSI14", "1h RSI21", "Manual"])
+rsiManual = input.int(14, "RSI manual", minval=2)
+slopeLookback = input.int(3, "Lookback pendiente RSI", minval=1)
+divLookback = input.int(8, "Lookback divergencia", minval=2)
+
+int rsiLen = preset == "15m" ? 14 : preset == "1h RSI21" ? 21 : preset == "1h RSI14" ? 14 : rsiManual
+
+rsi = ta.rsi(close, rsiLen)
+rsiSlope = rsi - rsi[slopeLookback]
+
+precioNuevoMin = low < ta.lowest(low[1], divLookback)
+precioNuevoMax = high > ta.highest(high[1], divLookback)
+rsiMinPrev = ta.lowest(rsi[1], divLookback)
+rsiMaxPrev = ta.highest(rsi[1], divLookback)
+
+divBull = precioNuevoMin and rsi > rsiMinPrev
+divBear = precioNuevoMax and rsi < rsiMaxPrev
+
+plot(rsi, "RSI", color=color.new(color.purple, 0), linewidth=2)
+hline(70, "Sobrecompra", color=color.new(color.red, 50))
+hline(50, "Nivel 50", color=color.new(color.gray, 50))
+hline(30, "Sobreventa", color=color.new(color.green, 50))
+
+bgcolor(divBull ? color.new(color.green, 88) : divBear ? color.new(color.red, 88) : na)
+plotshape(divBull, title="DIV+", style=shape.triangleup, location=location.bottom, color=color.new(color.green, 0), size=size.tiny)
+plotshape(divBear, title="DIV-", style=shape.triangledown, location=location.top, color=color.new(color.red, 0), size=size.tiny)
+
+plotchar(rsiSlope > 0, title="Pendiente positiva", char="↑", location=location.bottom, color=color.new(color.green, 0), size=size.tiny)
+plotchar(rsiSlope < 0, title="Pendiente negativa", char="↓", location=location.top, color=color.new(color.red, 0), size=size.tiny)
