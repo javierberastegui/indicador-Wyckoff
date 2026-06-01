@@ -3,7 +3,7 @@
 # 📈 Indicador Wyckoff
 
 ## Propósito del proyecto
-Repositorio para construir y mantener un indicador de trading basado en Metodología Wyckoff, cruces de EMAs y reglas de señalización operativa.
+Repositorio para construir y mantener un indicador de trading basado en Metodología Wyckoff, cruces de EMAs, RSI y reglas de señalización operativa.
 
 El sistema debe evolucionar como proyecto mantenible, documentado y validable. No se aceptan señales sueltas sin trazabilidad.
 
@@ -24,6 +24,7 @@ Mientras no haya decisión explícita distinta, el proyecto se organiza alrededo
 - indicador principal
 - reglas Wyckoff
 - reglas EMAs
+- reglas RSI
 - motor de señales
 - capa de eventos estructurados
 - capa central de alertas/notificaciones
@@ -74,6 +75,8 @@ Eventos mínimos recomendados:
 - `wyckoff.phase_detected`
 - `wyckoff.spring_candidate`
 - `wyckoff.upthrust_candidate`
+- `rsi.divergence_detected`
+- `rsi.absorption_candidate`
 - `ema.cross_detected`
 - `signal.long_candidate`
 - `signal.short_candidate`
@@ -95,30 +98,66 @@ Preferencia:
 - eventos separados de alertas
 - documentación por dominio
 
-No se permite concentrar reglas Wyckoff, EMAs, señales, alertas, backtest y documentación en un único archivo.
+No se permite concentrar reglas Wyckoff, EMAs, RSI, señales, alertas, backtest y documentación en un único archivo si el proyecto crece fuera de Pine Script.
+
+En Pine Script se acepta un archivo completo por artefacto por limitación de TradingView, siempre que la separación lógica quede clara por bloques internos y documentación viva.
 
 Umbrales:
 - 300-400 líneas: revisar división
-- más de 600 líneas: división obligatoria
-- más de 3 responsabilidades claras: dividir
-- señal + alerta + validación en mismo bloque: separar
+- más de 600 líneas: división obligatoria salvo Pine Script justificado
+- más de 3 responsabilidades claras: dividir o documentar separación interna
+- señal + alerta + validación en mismo bloque: separar o justificar por limitación Pine
 
 Orden recomendado de extracción:
 1. constantes y configuración
 2. helpers puros
 3. detectores Wyckoff
 4. reglas EMAs
-5. motor de señales
-6. eventos estructurados
-7. reglas centrales de alerta
-8. validación/backtesting
-9. visualización/panel si aplica
+5. reglas RSI
+6. motor de señales
+7. eventos estructurados
+8. reglas centrales de alerta
+9. validación/backtesting
+10. visualización/panel si aplica
+
+## Reglas de diseño para Wyckoff + EMA + RSI
+- La detección Wyckoff debe nombrarse como simplificada si no implementa lectura completa de eventos Wyckoff.
+- Los modos EMA soportados oficialmente son `9/21`, `10/20` y `5/8/13`.
+- La EMA200 es el filtro estructural base de tendencia.
+- El RSI se usa como confirmador estructural, no solo como sobrecompra/sobreventa.
+- LONG requiere RSI > 50 y pendiente positiva salvo ajuste documentado.
+- SHORT requiere RSI < 50 y pendiente negativa salvo ajuste documentado.
+- La divergencia RSI simple debe documentarse como heurística, no como prueba de giro.
+- La absorción Wyckoff por RSI debe documentarse como aproximación operativa.
+- El filtro lateral por rango/ATR es obligatorio para reducir señales en rango.
+- El volumen puede ser opcional por diferencias de calidad de datos en cripto.
+
+## Presets vigentes
+- `15m`: EMAs 9/21, RSI 14, perfil intermedio reactivo.
+- `1h RSI14`: EMAs 10/20, RSI 14, preset inicial recomendado.
+- `1h RSI21`: EMAs 10/20, RSI 21, preset más filtrado.
+- `Manual`: permite 9/21, 10/20 o 5/8/13.
+
+## Estilo de alertas TradingView
+- Las alertas deben exponerse como JSON apto para webhook.
+- Campos mínimos: `event_type`, `signal`, `symbol`, `timeframe`, `price`, `sl`, `tp`, `source_module`, `severity`.
+- La alerta debe representar `alert.rule_matched`, no un aviso suelto acoplado a un detector.
+
+## Política de pruebas manuales
+- Probar compilación en TradingView sin errores.
+- Probar presets `15m`, `1h RSI14` y `1h RSI21`.
+- Verificar señales en `BTCUSDT.P` de BingX en 15m y 1h.
+- Confirmar que no hay exceso de señales en lateral prolongado.
+- Confirmar que LONG/SHORT respetan EMA200 y RSI.
+- Confirmar Strategy Tester y exportación de operaciones si TradingView lo permite.
+- No afirmar rentabilidad sin rango, símbolo, timeframe y evidencia.
 
 ## Dominios
 Separación obligatoria salvo orden contraria:
 - `core_indicador`
 - `wyckoff`
 - `emas`
+- `rsi`
 - `senales`
 - `eventos`
 - `alertas`

@@ -1,0 +1,179 @@
+//@version=5
+indicator("Indicador Wyckoff + EMA + RSI v2.0", shorttitle="Wyckoff EMA RSI v2", overlay=true, max_labels_count=500, max_lines_count=200)
+
+// =====================================================
+// Inputs
+// =====================================================
+
+preset = input.string("15m", "Preset operativo", options=["15m", "1h RSI14", "1h RSI21", "Manual"])
+emaModeManual = input.string("10/20", "Modo EMA manual", options=["9/21", "10/20", "5/8/13"])
+rsiManual = input.int(14, "RSI manual", minval=2)
+
+ema200SlopeLookback = input.int(10, "Lookback pendiente EMA200", minval=1)
+slopeLookback = input.int(3, "Lookback pendiente RSI", minval=1)
+atrLen = input.int(14, "ATR", minval=1)
+lateralLookbackManual = input.int(20, "Lookback lateral manual", minval=5)
+ratioLateralMaxManual = input.float(5.0, "Maximo ratio rango/ATR manual", minval=0.5, step=0.1)
+divLookback = input.int(8, "Lookback divergencia", minval=2)
+
+usarVolumen = input.bool(false, "Activar confirmacion por volumen")
+volLen = input.int(20, "Media volumen", minval=1)
+exigirAbsorcion = input.bool(false, "Exigir absorcion/divergencia favorable")
+mostrarDivergencias = input.bool(true, "Mostrar divergencias")
+mostrarAbsorciones = input.bool(true, "Mostrar absorciones")
+mostrarFase = input.bool(true, "Mostrar fase Wyckoff simplificada")
+
+slAtrManual = input.float(1.6, "SL x ATR manual", minval=0.1, step=0.1)
+tpAtrManual = input.float(2.6, "TP x ATR manual", minval=0.1, step=0.1)
+
+// =====================================================
+// Presets activos
+// =====================================================
+
+string emaMode = preset == "15m" ? "9/21" : preset == "1h RSI14" or preset == "1h RSI21" ? "10/20" : emaModeManual
+int rsiLen = preset == "15m" ? 14 : preset == "1h RSI21" ? 21 : preset == "1h RSI14" ? 14 : rsiManual
+int lateralLookback = preset == "15m" ? 18 : preset == "1h RSI14" or preset == "1h RSI21" ? 24 : lateralLookbackManual
+float ratioLateralMax = preset == "15m" ? 4.5 : preset == "1h RSI14" or preset == "1h RSI21" ? 5.5 : ratioLateralMaxManual
+float slAtr = preset == "15m" ? 1.4 : preset == "1h RSI14" or preset == "1h RSI21" ? 1.8 : slAtrManual
+float tpAtr = preset == "15m" ? 2.2 : preset == "1h RSI14" or preset == "1h RSI21" ? 2.8 : tpAtrManual
+
+// =====================================================
+// Calculos base
+// =====================================================
+
+ema5 = ta.ema(close, 5)
+ema8 = ta.ema(close, 8)
+ema9 = ta.ema(close, 9)
+ema10 = ta.ema(close, 10)
+ema13 = ta.ema(close, 13)
+ema20 = ta.ema(close, 20)
+ema21 = ta.ema(close, 21)
+ema200 = ta.ema(close, 200)
+
+emaFast = emaMode == "9/21" ? ema9 : emaMode == "10/20" ? ema10 : ema5
+emaSlow = emaMode == "9/21" ? ema21 : emaMode == "10/20" ? ema20 : ema13
+
+rsi = ta.rsi(close, rsiLen)
+rsiSlope = rsi - rsi[slopeLookback]
+atr = ta.atr(atrLen)
+volBase = ta.sma(volume, volLen)
+volOk = not usarVolumen or volume > volBase
+
+rangoMax = ta.highest(high, lateralLookback)
+rangoMin = ta.lowest(low, lateralLookback)
+rangoN = rangoMax - rangoMin
+ratioRangoAtr = atr > 0 ? rangoN / atr : na
+mercadoLateral = ratioRangoAtr <= ratioLateralMax
+
+ema200Slope = ema200 - ema200[ema200SlopeLookback]
+trendLong = close > ema200 and ema200Slope > 0
+trendShort = close < ema200 and ema200Slope < 0
+
+precioNuevoMin = low < ta.lowest(low[1], divLookback)
+precioNuevoMax = high > ta.highest(high[1], divLookback)
+rsiMinPrev = ta.lowest(rsi[1], divLookback)
+rsiMaxPrev = ta.highest(rsi[1], divLookback)
+
+divBull = precioNuevoMin and rsi > rsiMinPrev
+divBear = precioNuevoMax and rsi < rsiMaxPrev
+
+velaMitad = low + (high - low) * 0.5
+absorcionBull = precioNuevoMin and rsi > rsiMinPrev and close > velaMitad
+absorcionBear = precioNuevoMax and rsi < rsiMaxPrev and close < velaMitad
+
+// =====================================================
+// Fases Wyckoff simplificadas
+// =====================================================
+
+esAcumulacion = mercadoLateral and close <= ema200
+esDistribucion = mercadoLateral and close > ema200
+esMarkup = not mercadoLateral and trendLong
+esMarkdown = not mercadoLateral and trendShort
+
+fase = esAcumulacion ? "Acumulacion" : esDistribucion ? "Distribucion" : esMarkup ? "Markup" : esMarkdown ? "Markdown" : "Transicion"
+
+rupturaAcumulacion = esMarkup and esAcumulacion[1]
+rupturaDistribucion = esMarkdown and esDistribucion[1]
+
+// =====================================================
+// Logica EMAs
+// =====================================================
+
+alineacionLongTriple = ema5 > ema8 and ema8 > ema13
+alineacionShortTriple = ema5 < ema8 and ema8 < ema13
+
+cruceLong = emaMode == "5/8/13" ? (alineacionLongTriple and not alineacionLongTriple[1]) : ta.crossover(emaFast, emaSlow)
+cruceShort = emaMode == "5/8/13" ? (alineacionShortTriple and not alineacionShortTriple[1]) : ta.crossunder(emaFast, emaSlow)
+
+// =====================================================
+// Confirmaciones RSI + Wyckoff + eventos candidatos
+// =====================================================
+
+rsiLongOk = rsi > 50 and rsiSlope > 0 and not divBear
+rsiShortOk = rsi < 50 and rsiSlope < 0 and not divBull
+
+wyckoffLongOk = esMarkup or rupturaAcumulacion
+wyckoffShortOk = esMarkdown or rupturaDistribucion
+
+estructuraLongOk = not exigirAbsorcion or divBull or absorcionBull
+estructuraShortOk = not exigirAbsorcion or divBear or absorcionBear
+
+longCandidate = barstate.isconfirmed and cruceLong and trendLong and rsiLongOk and wyckoffLongOk and not mercadoLateral and volOk and estructuraLongOk
+shortCandidate = barstate.isconfirmed and cruceShort and trendShort and rsiShortOk and wyckoffShortOk and not mercadoLateral and volOk and estructuraShortOk
+
+// En Pine Script no hay objetos JSON reales para eventos internos.
+// Estos booleanos representan eventos estructurados candidatos:
+// - signal.long_candidate
+// - signal.short_candidate
+// La capa central de alerta son los alertcondition() finales.
+
+alertLongRuleMatched = longCandidate
+alertShortRuleMatched = shortCandidate
+
+// =====================================================
+// Gestion sugerida de riesgo
+// =====================================================
+
+slLong = close - atr * slAtr
+tpLong = close + atr * tpAtr
+slShort = close + atr * slAtr
+tpShort = close - atr * tpAtr
+
+plot(alertLongRuleMatched ? slLong : na, "SL_LONG", color=color.new(color.red, 100), display=display.data_window)
+plot(alertLongRuleMatched ? tpLong : na, "TP_LONG", color=color.new(color.green, 100), display=display.data_window)
+plot(alertShortRuleMatched ? slShort : na, "SL_SHORT", color=color.new(color.red, 100), display=display.data_window)
+plot(alertShortRuleMatched ? tpShort : na, "TP_SHORT", color=color.new(color.green, 100), display=display.data_window)
+plot(rsi, "RSI_INFO", color=color.new(color.purple, 100), display=display.data_window)
+plot(ratioRangoAtr, "RATIO_RANGO_ATR", color=color.new(color.gray, 100), display=display.data_window)
+
+// =====================================================
+// Visualizacion
+// =====================================================
+
+plot(emaFast, "EMA rapida", color=color.new(color.green, 0), linewidth=2)
+plot(emaMode == "5/8/13" ? ema8 : na, "EMA media", color=color.new(color.orange, 0), linewidth=1)
+plot(emaSlow, "EMA lenta", color=color.new(color.red, 0), linewidth=2)
+plot(ema200, "EMA 200", color=color.new(color.blue, 0), linewidth=2)
+
+bgcolor(esAcumulacion ? color.new(color.teal, 86) : esDistribucion ? color.new(color.orange, 86) : na, title="Zonas laterales Wyckoff")
+
+plotshape(alertLongRuleMatched, title="LONG", style=shape.labelup, location=location.belowbar, color=color.new(color.lime, 0), text="LONG", textcolor=color.white, size=size.tiny)
+plotshape(alertShortRuleMatched, title="SHORT", style=shape.labeldown, location=location.abovebar, color=color.new(color.red, 0), text="SHORT", textcolor=color.white, size=size.tiny)
+
+plotshape(mostrarDivergencias and divBull, title="Divergencia alcista", style=shape.triangleup, location=location.belowbar, color=color.new(color.green, 0), size=size.tiny, text="DIV+")
+plotshape(mostrarDivergencias and divBear, title="Divergencia bajista", style=shape.triangledown, location=location.abovebar, color=color.new(color.red, 0), size=size.tiny, text="DIV-")
+plotshape(mostrarAbsorciones and absorcionBull, title="Absorcion alcista", style=shape.circle, location=location.belowbar, color=color.new(color.aqua, 0), size=size.tiny, text="ABS+")
+plotshape(mostrarAbsorciones and absorcionBear, title="Absorcion bajista", style=shape.circle, location=location.abovebar, color=color.new(color.fuchsia, 0), size=size.tiny, text="ABS-")
+
+if mostrarFase and alertLongRuleMatched
+    label.new(bar_index, low, "LONG\n" + fase + "\nRSI: " + str.tostring(rsi, format.mintick), style=label.style_label_up, textcolor=color.white, color=color.new(color.green, 0))
+
+if mostrarFase and alertShortRuleMatched
+    label.new(bar_index, high, "SHORT\n" + fase + "\nRSI: " + str.tostring(rsi, format.mintick), style=label.style_label_down, textcolor=color.white, color=color.new(color.red, 0))
+
+// =====================================================
+// Alertas JSON para webhook
+// =====================================================
+
+alertcondition(alertLongRuleMatched, title="Alerta LONG Wyckoff EMA RSI v2", message="{\"event_type\":\"signal.long_candidate\",\"signal\":\"LONG\",\"symbol\":\"{{ticker}}\",\"timeframe\":\"{{interval}}\",\"price\":\"{{close}}\",\"sl\":\"{{plot(\"SL_LONG\")}}\",\"tp\":\"{{plot(\"TP_LONG\")}}\",\"source_module\":\"tradingview.indicador_wyckoff_ema_rsi_v2\",\"severity\":\"info\"}")
+alertcondition(alertShortRuleMatched, title="Alerta SHORT Wyckoff EMA RSI v2", message="{\"event_type\":\"signal.short_candidate\",\"signal\":\"SHORT\",\"symbol\":\"{{ticker}}\",\"timeframe\":\"{{interval}}\",\"price\":\"{{close}}\",\"sl\":\"{{plot(\"SL_SHORT\")}}\",\"tp\":\"{{plot(\"TP_SHORT\")}}\",\"source_module\":\"tradingview.indicador_wyckoff_ema_rsi_v2\",\"severity\":\"info\"}")

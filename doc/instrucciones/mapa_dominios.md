@@ -13,6 +13,10 @@ Usa el log de `core_indicador` salvo que crezca y requiera archivo propio.
 Cruces y filtros de medias móviles.
 Usa el log de `core_indicador` salvo que crezca.
 
+## rsi
+Confirmación estructural RSI, nivel 50, pendiente, divergencias simples y absorción aproximada.
+Usa el log de `core_indicador` salvo que crezca y requiera archivo propio.
+
 ## senales
 Composición de condiciones long/short.
 Usa el log de `core_indicador`.

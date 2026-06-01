@@ -1,19 +1,28 @@
 # Relevo — indicador Wyckoff
 
 ## Estado actual
-Documentación viva inicial creada. Código funcional del indicador pendiente de incorporar o confirmar.
+Primera versión funcional v2.0 incorporada en rama `feat/wyckoff-ema-rsi-v2`.
+
+Archivos funcionales:
+- `indicador_wyckoff_ema_rsi_v2.pine`
+- `estrategia_wyckoff_ema_rsi_v2.pine`
+- `rsi_panel_wyckoff_helper.pine`
 
 ## Decisiones activas
-- Separar reglas Wyckoff, EMAs, señales, eventos y alertas.
-- No generar alertas directas desde cada detector.
-- No afirmar rentabilidad sin validación.
-- Registrar demo/backtest como evidencia.
+- Separar reglas Wyckoff, EMAs, RSI, señales, eventos y alertas.
+- Mantener alertas como capa central mediante `alertcondition()`.
+- Registrar cualquier prueba de demo o backtest como evidencia verificable.
+- Usar `1h RSI14` como preset inicial recomendado para perfil intermedio.
+- Usar `15m` después de validar estructura, por ser más reactivo y ruidoso.
 
 ## Siguiente paso
-Crear primera versión del indicador con:
-1. detección Wyckoff básica
-2. filtros EMA
-3. señal long/short candidata
-4. evento estructurado
-5. regla central de alerta
-6. validación manual o demo
+1. Probar compilación del indicador en TradingView.
+2. Probar compilación de la estrategia en TradingView.
+3. Validar `BTCUSDT.P` BingX en 1h con preset `1h RSI14`.
+4. Registrar rango temporal, capturas y métricas.
+5. Comparar con preset `15m` y decidir si ajustar ratio rango/ATR, RSI o EMAs.
+
+## Riesgos abiertos
+- Pine Script no se ha compilado todavía dentro de TradingView.
+- No hay backtest validado ni demo forward test.
+- La detección Wyckoff y absorción RSI son heurísticas simplificadas.
