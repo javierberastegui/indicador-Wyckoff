@@ -1,10 +1,21 @@
 //@version=5
-indicator("Panel RSI Wyckoff Helper v2.0", shorttitle="RSI Panel Wyckoff", overlay=false)
+indicator("Panel RSI Wyckoff Helper v2.3", shorttitle="RSI Panel Wyckoff", overlay=false)
+
+// =====================================================
+// Inputs
+// =====================================================
 
 preset = input.string("15m", "Preset", options=["15m", "1h RSI14", "1h RSI21", "Manual"])
 rsiManual = input.int(14, "RSI manual", minval=2)
 slopeLookback = input.int(3, "Lookback pendiente RSI", minval=1)
 divLookback = input.int(8, "Lookback divergencia", minval=2)
+mostrarDivergenciasRsi = input.bool(true, "Mostrar divergencias RSI", group="Visualizacion RSI")
+mostrarAbsorcionesRsi = input.bool(true, "Mostrar absorciones RSI", group="Visualizacion RSI")
+mostrarFondoRsi = input.bool(true, "Mostrar fondo operativo RSI", group="Visualizacion RSI")
+
+// =====================================================
+// Calculos RSI y estructura simplificada
+// =====================================================
 
 int rsiLen = preset == "15m" ? 14 : preset == "1h RSI21" ? 21 : preset == "1h RSI14" ? 14 : rsiManual
 
@@ -19,14 +30,29 @@ rsiMaxPrev = ta.highest(rsi[1], divLookback)
 divBull = precioNuevoMin and rsi > rsiMinPrev
 divBear = precioNuevoMax and rsi < rsiMaxPrev
 
-plot(rsi, "RSI", color=color.new(color.purple, 0), linewidth=2)
-hline(70, "Sobrecompra", color=color.new(color.red, 50))
-hline(50, "Nivel 50", color=color.new(color.gray, 50))
-hline(30, "Sobreventa", color=color.new(color.green, 50))
+velaMitad = low + (high - low) * 0.5
+absorcionBull = precioNuevoMin and rsi > rsiMinPrev and close > velaMitad
+absorcionBear = precioNuevoMax and rsi < rsiMaxPrev and close < velaMitad
 
-bgcolor(divBull ? color.new(color.green, 88) : divBear ? color.new(color.red, 88) : na)
-plotshape(divBull, title="DIV+", style=shape.triangleup, location=location.bottom, color=color.new(color.green, 0), size=size.tiny)
-plotshape(divBear, title="DIV-", style=shape.triangledown, location=location.top, color=color.new(color.red, 0), size=size.tiny)
+rsiOperativoLong = rsi > 50 and rsiSlope > 0
+rsiOperativoShort = rsi < 50 and rsiSlope < 0
+
+// =====================================================
+// Panel operativo RSI
+// =====================================================
+
+fondoRsi = not mostrarFondoRsi ? na : rsiOperativoLong ? color.new(color.green, 90) : rsiOperativoShort ? color.new(color.red, 90) : na
+bgcolor(fondoRsi, title="Fondo operativo RSI")
+
+plot(rsi, "RSI", color=color.new(color.purple, 0), linewidth=2)
+hline(70, "Sobrecompra", color=color.new(color.red, 35), linestyle=hline.style_dashed, linewidth=1)
+hline(50, "Nivel 50 operativo", color=color.new(color.gray, 0), linestyle=hline.style_solid, linewidth=2)
+hline(30, "Sobreventa", color=color.new(color.green, 35), linestyle=hline.style_dashed, linewidth=1)
+
+plotshape(mostrarDivergenciasRsi and divBull, title="DIV+ RSI", style=shape.labelup, location=location.bottom, color=color.new(color.green, 0), text="DIV+", textcolor=color.white, size=size.tiny)
+plotshape(mostrarDivergenciasRsi and divBear, title="DIV- RSI", style=shape.labeldown, location=location.top, color=color.new(color.red, 0), text="DIV-", textcolor=color.white, size=size.tiny)
+plotshape(mostrarAbsorcionesRsi and absorcionBull, title="ABS+ RSI", style=shape.circle, location=location.bottom, color=color.new(color.aqua, 0), text="ABS+", textcolor=color.white, size=size.tiny)
+plotshape(mostrarAbsorcionesRsi and absorcionBear, title="ABS- RSI", style=shape.circle, location=location.top, color=color.new(color.fuchsia, 0), text="ABS-", textcolor=color.white, size=size.tiny)
 
 plotchar(rsiSlope > 0, title="Pendiente positiva", char="↑", location=location.bottom, color=color.new(color.green, 0), size=size.tiny)
 plotchar(rsiSlope < 0, title="Pendiente negativa", char="↓", location=location.top, color=color.new(color.red, 0), size=size.tiny)
