@@ -1,5 +1,5 @@
 //@version=5
-indicator("Indicador Wyckoff + EMA + RSI v2.0", shorttitle="Wyckoff EMA RSI v2", overlay=true, max_labels_count=500, max_lines_count=200)
+indicator("Indicador Wyckoff + EMA + RSI v2.3.1", shorttitle="Wyckoff EMA RSI v2", overlay=true, max_labels_count=500, max_lines_count=200)
 
 // =====================================================
 // Inputs
@@ -40,7 +40,18 @@ mostrarDivergencias = input.bool(true, "Mostrar divergencias", group="Visualizac
 mostrarAbsorciones = input.bool(true, "Mostrar absorciones", group="Visualizacion")
 mostrarCinta = input.bool(true, "Mostrar cinta de tendencia", group="Visualizacion")
 mostrarPanel = input.bool(true, "Mostrar panel de estado", group="Visualizacion")
-mostrarFase = input.bool(true, "Mostrar etiquetas de señal", group="Visualizacion")
+mostrarCrucesEma = input.bool(true, "Mostrar cruces EMA", group="Visualizacion")
+mostrarZonasWyckoff = input.bool(true, "Mostrar zonas Wyckoff", group="Visualizacion")
+mostrarRetrocesos = input.bool(true, "Mostrar retrocesos", group="Visualizacion")
+mostrarTextoDivAbsOverlay = input.bool(false, "Mostrar texto DIV/ABS en overlay", group="Visualizacion")
+mostrarNombreZonaWyckoff = input.bool(true, "Mostrar nombre zona Wyckoff al cambiar", group="Visualizacion")
+modoEtiquetas = input.string("Compacto", "Modo etiquetas LONG/SHORT", options=["Compacto", "Detallado", "Solo flechas"], group="Visualizacion")
+mostrarSoporteResistencia = input.bool(false, "Mostrar soporte/resistencia", group="Soporte / resistencia")
+pivotLen = input.int(5, "Longitud pivot", minval=1, maxval=50, group="Soporte / resistencia")
+maxLineasSR = input.int(4, "Maximo lineas S/R por lado", minval=1, maxval=20, group="Soporte / resistencia")
+distanciaMinimaSrAtr = input.float(0.8, "Distancia minima S/R duplicada (xATR)", minval=0.1, step=0.1, group="Soporte / resistencia")
+mostrarSoloSrCercano = input.bool(true, "Mostrar solo S/R cerca del precio", group="Soporte / resistencia")
+distanciaSrVisibleAtr = input.float(8.0, "Distancia maxima S/R visible (xATR)", minval=1.0, step=0.5, group="Soporte / resistencia")
 
 // =====================================================
 // Presets activos
@@ -204,24 +215,100 @@ plot(ema200, "EMA 200", color=color.new(color.blue, 0), linewidth=2)
 cintaCol = not mostrarCinta ? na : tendenciaFuerteLong ? color.new(color.green, 75) : tendenciaDebilLong ? color.new(color.green, 90) : tendenciaFuerteShort ? color.new(color.red, 75) : tendenciaDebilShort ? color.new(color.red, 90) : na
 fill(pFast, pSlow, color=cintaCol, title="Cinta de tendencia")
 
-bgcolor(esAcumulacion ? color.new(color.teal, 86) : esDistribucion ? color.new(color.orange, 86) : na, title="Zonas laterales Wyckoff")
+zonaWyckoffCol = not mostrarZonasWyckoff ? na : esAcumulacion ? color.new(color.teal, 92) : esDistribucion ? color.new(color.orange, 92) : esMarkup ? color.new(color.green, 95) : esMarkdown ? color.new(color.red, 95) : na
+bgcolor(zonaWyckoffCol, title="Zonas Wyckoff y contexto")
+
+zonaWyckoffTxt = esAcumulacion ? "ACUM" : esDistribucion ? "DIST" : esMarkup ? "MARKUP" : esMarkdown ? "MARKDOWN" : ""
+zonaWyckoffCambio = mostrarNombreZonaWyckoff and zonaWyckoffTxt != "" and zonaWyckoffTxt != zonaWyckoffTxt[1]
+zonaWyckoffLabelCol = esAcumulacion ? color.new(color.teal, 18) : esDistribucion ? color.new(color.orange, 18) : esMarkup ? color.new(color.green, 18) : color.new(color.red, 18)
+
+if zonaWyckoffCambio
+    label.new(bar_index, high + atr * 1.1, zonaWyckoffTxt, style=label.style_label_down, textcolor=color.white, color=zonaWyckoffLabelCol, size=size.tiny)
 
 // =====================================================
-// Visualizacion: señales y eventos
+// Visualizacion: soporte / resistencia opcional
 // =====================================================
 
-plotshape(longCandidate, title="LONG", style=shape.labelup, location=location.belowbar, color=color.new(color.lime, 0), text="LONG", textcolor=color.white, size=size.tiny)
-plotshape(shortCandidate, title="SHORT", style=shape.labeldown, location=location.abovebar, color=color.new(color.red, 0), text="SHORT", textcolor=color.white, size=size.tiny)
+var line[] lineasResistencia = array.new_line()
+var line[] lineasSoporte = array.new_line()
 
-plotshape(mostrarDivergencias and divBull, title="Divergencia alcista", style=shape.triangleup, location=location.belowbar, color=color.new(color.green, 0), size=size.tiny, text="DIV+")
-plotshape(mostrarDivergencias and divBear, title="Divergencia bajista", style=shape.triangledown, location=location.abovebar, color=color.new(color.red, 0), size=size.tiny, text="DIV-")
-plotshape(mostrarAbsorciones and absorcionBull, title="Absorcion alcista", style=shape.circle, location=location.belowbar, color=color.new(color.aqua, 0), size=size.tiny, text="ABS+")
-plotshape(mostrarAbsorciones and absorcionBear, title="Absorcion bajista", style=shape.circle, location=location.abovebar, color=color.new(color.fuchsia, 0), size=size.tiny, text="ABS-")
+srExisteCerca(array<line> lineas, float nivel, float distanciaMinima) =>
+    existe = false
+    if array.size(lineas) > 0
+        for i = 0 to array.size(lineas) - 1
+            lineaActual = array.get(lineas, i)
+            existe := existe or math.abs(line.get_y1(lineaActual) - nivel) <= distanciaMinima
+    existe
 
-if mostrarFase and longCandidate
+actualizarVisibilidadSr(array<line> lineas, color colorBase, float distanciaVisible) =>
+    if array.size(lineas) > 0
+        for i = 0 to array.size(lineas) - 1
+            lineaActual = array.get(lineas, i)
+            nivel = line.get_y1(lineaActual)
+            visible = not mostrarSoloSrCercano or math.abs(close - nivel) <= distanciaVisible
+            line.set_color(lineaActual, visible ? colorBase : color.new(colorBase, 100))
+
+pivotHigh = ta.pivothigh(high, pivotLen, pivotLen)
+pivotLow = ta.pivotlow(low, pivotLen, pivotLen)
+distanciaMinimaSr = atr * distanciaMinimaSrAtr
+distanciaVisibleSr = atr * distanciaSrVisibleAtr
+colorResistenciaSr = color.new(color.red, 86)
+colorSoporteSr = color.new(color.green, 86)
+
+if mostrarSoporteResistencia and not na(pivotHigh) and not srExisteCerca(lineasResistencia, pivotHigh, distanciaMinimaSr)
+    nuevaResistencia = line.new(bar_index - pivotLen, pivotHigh, bar_index, pivotHigh, extend=extend.right, color=colorResistenciaSr, style=line.style_solid, width=1)
+    array.push(lineasResistencia, nuevaResistencia)
+    if array.size(lineasResistencia) > maxLineasSR
+        line.delete(array.shift(lineasResistencia))
+
+if mostrarSoporteResistencia and not na(pivotLow) and not srExisteCerca(lineasSoporte, pivotLow, distanciaMinimaSr)
+    nuevoSoporte = line.new(bar_index - pivotLen, pivotLow, bar_index, pivotLow, extend=extend.right, color=colorSoporteSr, style=line.style_solid, width=1)
+    array.push(lineasSoporte, nuevoSoporte)
+    if array.size(lineasSoporte) > maxLineasSR
+        line.delete(array.shift(lineasSoporte))
+
+if mostrarSoporteResistencia
+    actualizarVisibilidadSr(lineasResistencia, colorResistenciaSr, distanciaVisibleSr)
+    actualizarVisibilidadSr(lineasSoporte, colorSoporteSr, distanciaVisibleSr)
+
+if not mostrarSoporteResistencia and (array.size(lineasResistencia) > 0 or array.size(lineasSoporte) > 0)
+    while array.size(lineasResistencia) > 0
+        line.delete(array.shift(lineasResistencia))
+    while array.size(lineasSoporte) > 0
+        line.delete(array.shift(lineasSoporte))
+
+// =====================================================
+// Visualizacion: señales, cruces, retrocesos y eventos
+// =====================================================
+
+modoCompacto = modoEtiquetas == "Compacto"
+modoDetallado = modoEtiquetas == "Detallado"
+modoSoloFlechas = modoEtiquetas == "Solo flechas"
+
+plotshape(modoCompacto and longCandidate, title="LONG compacto", style=shape.labelup, location=location.belowbar, color=color.new(color.lime, 0), text="LONG", textcolor=color.white, size=size.normal)
+plotshape(modoCompacto and shortCandidate, title="SHORT compacto", style=shape.labeldown, location=location.abovebar, color=color.new(color.red, 0), text="SHORT", textcolor=color.white, size=size.normal)
+plotshape(modoSoloFlechas and longCandidate, title="LONG solo flecha", style=shape.triangleup, location=location.belowbar, color=color.new(color.lime, 0), text="", size=size.normal)
+plotshape(modoSoloFlechas and shortCandidate, title="SHORT solo flecha", style=shape.triangledown, location=location.abovebar, color=color.new(color.red, 0), text="", size=size.normal)
+
+plotshape(mostrarCrucesEma and cruceLong, title="Cruce EMA alcista", style=shape.diamond, location=location.belowbar, color=color.new(color.aqua, 0), text="EMA+", textcolor=color.white, size=size.small)
+plotshape(mostrarCrucesEma and cruceShort, title="Cruce EMA bajista", style=shape.diamond, location=location.abovebar, color=color.new(color.orange, 0), text="EMA-", textcolor=color.white, size=size.small)
+
+plotshape(mostrarRetrocesos and pullbackLong, title="Retroceso alcista", style=shape.circle, location=location.belowbar, color=color.new(color.green, 15), text="PB+", textcolor=color.white, size=size.tiny)
+plotshape(mostrarRetrocesos and pullbackShort, title="Retroceso bajista", style=shape.circle, location=location.abovebar, color=color.new(color.red, 15), text="PB-", textcolor=color.white, size=size.tiny)
+
+plotshape(mostrarDivergencias and divBull and not mostrarTextoDivAbsOverlay ? low - atr * 0.45 : na, title="Divergencia alcista", style=shape.triangleup, location=location.absolute, color=color.new(color.green, 15), size=size.tiny)
+plotshape(mostrarDivergencias and divBear and not mostrarTextoDivAbsOverlay ? high + atr * 0.45 : na, title="Divergencia bajista", style=shape.triangledown, location=location.absolute, color=color.new(color.red, 15), size=size.tiny)
+plotshape(mostrarAbsorciones and absorcionBull and not mostrarTextoDivAbsOverlay ? low - atr * 0.75 : na, title="Absorcion alcista", style=shape.circle, location=location.absolute, color=color.new(color.aqua, 15), size=size.tiny)
+plotshape(mostrarAbsorciones and absorcionBear and not mostrarTextoDivAbsOverlay ? high + atr * 0.75 : na, title="Absorcion bajista", style=shape.circle, location=location.absolute, color=color.new(color.fuchsia, 15), size=size.tiny)
+plotshape(mostrarDivergencias and divBull and mostrarTextoDivAbsOverlay ? low - atr * 0.45 : na, title="Divergencia alcista texto", style=shape.triangleup, location=location.absolute, color=color.new(color.green, 15), text="DIV+", textcolor=color.white, size=size.tiny)
+plotshape(mostrarDivergencias and divBear and mostrarTextoDivAbsOverlay ? high + atr * 0.45 : na, title="Divergencia bajista texto", style=shape.triangledown, location=location.absolute, color=color.new(color.red, 15), text="DIV-", textcolor=color.white, size=size.tiny)
+plotshape(mostrarAbsorciones and absorcionBull and mostrarTextoDivAbsOverlay ? low - atr * 0.75 : na, title="Absorcion alcista texto", style=shape.circle, location=location.absolute, color=color.new(color.aqua, 15), text="ABS+", textcolor=color.white, size=size.tiny)
+plotshape(mostrarAbsorciones and absorcionBear and mostrarTextoDivAbsOverlay ? high + atr * 0.75 : na, title="Absorcion bajista texto", style=shape.circle, location=location.absolute, color=color.new(color.fuchsia, 15), text="ABS-", textcolor=color.white, size=size.tiny)
+
+if modoDetallado and longCandidate
     label.new(bar_index, low, "LONG " + (tendenciaFuerteLong ? "FUERTE" : "DEBIL") + " (" + rrLong + ")\nFase: " + fase + "\nSL: " + str.tostring(slLong, "#.##") + "  TP: " + str.tostring(tpLong, "#.##"), style=label.style_label_up, textcolor=color.white, color=color.new(color.green, 0), size=size.small)
 
-if mostrarFase and shortCandidate
+if modoDetallado and shortCandidate
     label.new(bar_index, high, "SHORT " + (tendenciaFuerteShort ? "FUERTE" : "DEBIL") + " (" + rrShort + ")\nFase: " + fase + "\nSL: " + str.tostring(slShort, "#.##") + "  TP: " + str.tostring(tpShort, "#.##"), style=label.style_label_down, textcolor=color.white, color=color.new(color.red, 0), size=size.small)
 
 // =====================================================

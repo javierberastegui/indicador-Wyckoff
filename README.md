@@ -4,7 +4,7 @@ Repositorio para desarrollar un indicador basado en Metodología Wyckoff, cruces
 
 ## Estado actual
 
-Versión funcional v2.0 en desarrollo: Wyckoff simplificado + EMAs + RSI + alertas JSON + estrategia de backtesting.
+Versión funcional v2.3.1 en desarrollo: Wyckoff simplificado + EMAs + RSI + alertas JSON + estrategia de backtesting, con mejora visual del overlay y panel RSI operativo separado.
 
 Antes de tocar código, leer:
 1. `AGENTS.md`
@@ -22,9 +22,11 @@ En Pine Script la separación se expresa así:
 - reglas centrales mediante `alertcondition()`,
 - mensajes JSON trazables para webhook.
 
-## Indicador Wyckoff + EMA + RSI v2.0
+La mejora visual v2.3.0 no añade alertas nuevas: cruces EMA, retrocesos, divergencias, absorciones y soporte/resistencia son ayudas visuales, no eventos de notificación aislados.
 
-La v2.0 implementa una lectura operativa simplificada de Wyckoff combinada con:
+## Indicador Wyckoff + EMA + RSI v2.3.1
+
+La versión actual implementa una lectura operativa simplificada de Wyckoff combinada con:
 - cruces EMA configurables y entradas por retroceso (pullback) a la EMA rápida,
 - filtro de tendencia con EMA200,
 - confirmación RSI por nivel 50 y pendiente,
@@ -35,10 +37,35 @@ La v2.0 implementa una lectura operativa simplificada de Wyckoff combinada con:
 - detección aproximada de absorción,
 - filtro de lateralidad por rango/ATR,
 - confirmación opcional por volumen,
+- capa visual v2.3.0 con jerarquía entre señales, cruces EMA, retrocesos, divergencias/absorciones y contexto Wyckoff,
 - alertas JSON preparadas para TradingView/webhook,
 - estrategia separada para backtesting.
 
 La detección Wyckoff es heurística. No pretende identificar toda la metodología clásica; aproxima fases útiles para operar y validar señales.
+
+### Mejora visual v2.3.1
+
+El overlay principal prioriza lectura rápida y menos ruido:
+
+- `modoEtiquetas` controla la jerarquía LONG/SHORT:
+  - `Compacto` por defecto: marcador LONG/SHORT visible y limpio, sin SL/TP/fase sobre la vela.
+  - `Detallado`: etiqueta con fuerza, fase, SL y TP para revisión puntual.
+  - `Solo flechas`: marcador sin texto.
+- `mostrarCrucesEma` activa marcas `EMA+` / `EMA-` separadas de LONG/SHORT.
+- `mostrarRetrocesos` activa marcas `PB+` / `PB-` para pullbacks a EMA rápida sin confundirlos con señal confirmada.
+- `mostrarZonasWyckoff` pinta fondos suaves para acumulación, distribución, markup y markdown, sin tapar velas ni EMAs; `mostrarNombreZonaWyckoff` muestra una etiqueta compacta solo cuando cambia la fase (`ACUM`, `DIST`, `MARKUP`, `MARKDOWN`).
+- `mostrarSoporteResistencia` dibuja soportes/resistencias simples por pivots (`ta.pivothigh` / `ta.pivotlow`) con líneas extendidas a la derecha; viene desactivado por defecto para evitar saturación.
+- S/R queda limitado por `maxLineasSR` (4 por lado por defecto), evita duplicados cercanos con `distanciaMinimaSrAtr` y puede ocultar líneas lejanas al precio con `mostrarSoloSrCercano`.
+- Divergencias y absorciones en overlay se muestran como iconos pequeños sin texto y con offset por ATR para evitar que `DIV` y `ABS` se monten. `mostrarTextoDivAbsOverlay` viene desactivado; el texto claro queda en el panel RSI.
+
+### Panel RSI operativo
+
+`rsi_panel_wyckoff_helper.pine` es un helper separado (`overlay=false`) para leer RSI sin ensuciar el gráfico principal:
+
+- RSI visible con línea 50 destacada y niveles 70/30.
+- Fondo suave cuando RSI > 50 con pendiente positiva o RSI < 50 con pendiente negativa.
+- Inputs `mostrarDivergenciasRsi`, `mostrarAbsorcionesRsi` y `mostrarFondoRsi`.
+- Divergencias (`DIV+` / `DIV-`) y absorciones (`ABS+` / `ABS-`) con texto claro dentro del panel RSI.
 
 ### Tendencia, fuerza y gestión de riesgo
 
@@ -46,6 +73,12 @@ El indicador prioriza que la tendencia se vea **clara**:
 
 - **Cinta de color** entre la EMA rápida y la lenta: verde (alcista) o roja (bajista). Más opaca = tendencia **FUERTE**; más tenue = tendencia **DÉBIL**.
 - **Panel de estado** (esquina superior derecha): dirección, fuerza (con su ratio 1×2 / 2×4), fase Wyckoff y RSI.
+
+Interpretación del panel de estado:
+- **Tendencia** = dirección estructural según precio, EMA200 y pendiente de EMA200.
+- **Fuerza** = clasificación fuerte/débil y ratio sugerido según separación de EMAs y divergencia contraria reciente.
+- **Fase** = lectura Wyckoff simplificada del contexto, no una fase clásica completa validada.
+- **RSI** = confirmador estructural; no debe leerse como señal aislada.
 
 Una **tendencia FUERTE** requiere: dirección clara respecto a EMA200, EMAs rápida/lenta bien separadas (≥ `sepMinAtr` × ATR) y **sin divergencia contraria reciente**. En caso contrario la tendencia es **DÉBIL**.
 
@@ -63,6 +96,11 @@ Inputs de trailing en `Riesgo dinamico`: tendencia débil usa `trailDebil = 1.2`
 ### Entradas por retroceso
 
 Además del cruce de EMAs, con `usarRetroceso` activado se generan señales cuando el precio retrocede a la EMA rápida y rebota en la dirección de la tendencia. Así no se pierden tramos largos de tendencia entre cruces.
+
+Lectura visual de retrocesos:
+- `PB+` = retroceso en tendencia alcista hacia la EMA rápida.
+- `PB-` = retroceso en tendencia bajista hacia la EMA rápida.
+- `PB+`/`PB-` no son una entrada por sí solos; ayudan a identificar una posible continuación dentro del contexto, mientras la señal confirmada sigue siendo LONG/SHORT.
 
 ## Archivos principales
 
@@ -148,9 +186,10 @@ Ejemplo SHORT:
 3. Probar primero `estrategia_wyckoff_ema_rsi_v2.pine` en 1h con preset `1h RSI14`.
 4. Comparar después con `1h RSI21`.
 5. Pasar a 15m solo si 1h ya tiene comportamiento razonable.
-6. Cargar `indicador_wyckoff_ema_rsi_v2.pine` para alertas.
-7. Crear alertas LONG/SHORT desde TradingView.
-8. Operar primero en demo manual o demo conectada.
+6. Cargar `indicador_wyckoff_ema_rsi_v2.pine` para alertas y visualización overlay.
+7. Cargar `rsi_panel_wyckoff_helper.pine` si se quiere panel RSI separado.
+8. Crear alertas LONG/SHORT desde TradingView.
+9. Operar primero en demo manual o demo conectada.
 
 ## Validación documental
 
@@ -162,10 +201,12 @@ python3 scripts/validar_documentacion_viva.py
 
 Pine Script debe validarse dentro de TradingView:
 - compilación del indicador,
+- compilación del helper RSI,
 - compilación de la estrategia,
 - Strategy Tester en BTCUSDT.P BingX 1h,
 - comparación con BTCUSDT.P BingX 15m,
 - revisión de señales en lateral,
+- revisión de jerarquía visual en overlay y panel RSI,
 - revisión de alertas JSON.
 
 No se debe publicar como rentable sin evidencias de backtest, demo o forward test.
