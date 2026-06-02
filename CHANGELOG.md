@@ -1,5 +1,24 @@
 # Changelog
 
+## [2.3.0] - 2026-06-02
+
+### Added
+- Mejora visual del indicador overlay con inputs `mostrarCrucesEma`, `mostrarZonasWyckoff`, `mostrarRetrocesos`, `mostrarSoporteResistencia`, `pivotLen`, `maxLineasSR` y `modoEtiquetas`.
+- Marcadores independientes `EMA+`/`EMA-` para cruces EMA y `PB+`/`PB-` para retrocesos a EMA rápida, sin añadir alertas nuevas.
+- Zonas Wyckoff de fondo para acumulación, distribución, markup y markdown con colores suaves.
+- Soporte/resistencia opcional por pivots con arrays de líneas, extensión a la derecha y límite configurable de líneas.
+- Panel RSI v2.3 con inputs para divergencias, absorciones y fondo operativo RSI.
+
+### Changed
+- LONG/SHORT usan `modoEtiquetas` para separar modo compacto, detallado y solo flechas; por defecto se evita la etiqueta grande con SL/TP/fase.
+- Divergencias y absorciones del overlay pasan a iconos sin texto con offset por ATR para reducir solapamientos; el texto operativo queda en el helper RSI.
+- La mejora visual no cambia lógica de entrada/salida, no toca la estrategia ni el runner ATR manual, y mantiene la capa central de alertas al final del indicador.
+
+### Tests
+- Validación documental mediante `python3 scripts/validar_documentacion_viva.py`.
+- Revisión de espacios mediante `git diff --check`.
+- Compilación real de Pine Script sigue pendiente en TradingView.
+
 ## [2.2.0] - 2026-06-02
 
 ### Added

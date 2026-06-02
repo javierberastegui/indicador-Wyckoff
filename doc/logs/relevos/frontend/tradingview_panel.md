@@ -1,7 +1,7 @@
 # Relevo — TradingView / visual
 
 ## Estado actual
-Pine Script v2.2 en rama de trabajo; estrategia actualizada con TP parcial único y runner con trailing manual ATR.
+Pine Script v2.3.0 en rama de trabajo; indicador overlay y helper RSI actualizados para mejorar jerarquía visual. La estrategia v2.2 con TP parcial único y runner ATR manual no se tocó.
 
 Archivos:
 - `indicador_wyckoff_ema_rsi_v2.pine`
@@ -11,11 +11,22 @@ Archivos:
 ## Decisiones activas
 La visualización debe ayudar a entender la señal, no esconder la lógica.
 
-La señal visual LONG/SHORT solo aparece cuando se cumplen filtros Wyckoff simplificados, EMAs, RSI, lateralidad y volumen si está activado. La estrategia conserva esas entradas; solo cambia la gestión de salidas.
+La señal visual LONG/SHORT solo aparece cuando se cumplen filtros Wyckoff simplificados, EMAs, RSI, lateralidad y volumen si está activado. La mejora v2.3 añade ayudas visuales, pero no cambia entradas/salidas ni añade alertas sueltas.
+
+Jerarquía visual v2.3:
+- LONG/SHORT: `modoEtiquetas` (`Compacto`, `Detallado`, `Solo flechas`).
+- Cruces EMA: `EMA+` / `EMA-`, separados de LONG/SHORT.
+- Retrocesos: `PB+` / `PB-`, separados de señal confirmada.
+- Contexto: fondos suaves para acumulación, distribución, markup y markdown.
+- Divergencias/absorciones overlay: iconos sin texto con offset ATR.
+- Panel RSI: textos claros `DIV+`, `DIV-`, `ABS+`, `ABS-` y fondo operativo por nivel 50 + pendiente.
+- Soporte/resistencia: opcional por pivots, desactivado por defecto y limitado por `maxLineasSR`.
 
 ## Siguiente paso
 1. Compilar indicador en TradingView.
-2. Compilar estrategia en TradingView y revisar que el TP parcial no se reemite después de ejecutarse.
-3. Revisar Strategy Tester en `BTCUSDT.P` BingX 1h.
-4. Comparar preset `15m` con `1h RSI14` y revisar runner con trailing manual ATR (`trailDebil=1.2`, `trailFuerte=2.5`).
-5. Registrar errores exactos si Pine marca problemas de sintaxis.
+2. Compilar helper RSI en TradingView.
+3. Compilar estrategia en TradingView y revisar que el TP parcial no se reemite después de ejecutarse.
+4. Revisar Strategy Tester en `BTCUSDT.P` BingX 1h.
+5. Validar legibilidad visual con preset `1h RSI14`, después `1h RSI21` y `15m`.
+6. Registrar errores exactos si Pine marca problemas de sintaxis.
+7. Registrar capturas antes/después si se confirma legibilidad.

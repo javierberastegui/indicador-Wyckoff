@@ -33,3 +33,12 @@
 - Evidencia:
 - Pendiente:
 ```
+
+### 2026-06-02 — v2.3 mejora visual overlay y RSI
+- Dominio: `core_indicador`, `emas`, `rsi`, `senales`, `tradingview`.
+- Cambio: `indicador_wyckoff_ema_rsi_v2.pine` mantiene la lógica de entrada/salida y la capa central de alertas, pero añade jerarquía visual con `modoEtiquetas`, cruces `EMA+`/`EMA-`, retrocesos `PB+`/`PB-`, zonas Wyckoff completas y soporte/resistencia opcional por pivots.
+- Cambio: divergencias y absorciones del overlay pasan a iconos sin texto con offset por ATR para reducir solapamientos; el texto `DIV`/`ABS` queda en el helper RSI separado.
+- Cambio: `rsi_panel_wyckoff_helper.pine` añade fondo operativo RSI, inputs para divergencias/absorciones/fondo y absorción aproximada con la misma heurística del overlay.
+- Validación: `python3 scripts/validar_documentacion_viva.py` y `git diff --check` ejecutados correctamente; compilación real de Pine queda pendiente en TradingView.
+- Evidencia: cambios en `indicador_wyckoff_ema_rsi_v2.pine`, `rsi_panel_wyckoff_helper.pine`, `README.md`, `CHANGELOG.md` y documentación viva.
+- Pendiente: compilar indicador/helper en TradingView, revisar visualmente `BTCUSDT.P` BingX en 1h y 15m, y registrar capturas/evidencia sin afirmar rentabilidad.
