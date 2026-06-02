@@ -16,12 +16,24 @@ lateralLookbackManual = input.int(20, "Lookback lateral manual", minval=5)
 ratioLateralMaxManual = input.float(5.0, "Maximo ratio rango/ATR manual", minval=0.5, step=0.1)
 divLookback = input.int(8, "Lookback divergencia", minval=2)
 
-usarVolumen = input.bool(false, "Activar confirmacion por volumen")
-volLen = input.int(20, "Media volumen", minval=1)
-exigirAbsorcion = input.bool(false, "Exigir absorcion/divergencia favorable")
+// Fuerza de tendencia
+sepMinAtr = input.float(0.5, "Separacion minima EMAs (xATR) para tendencia FUERTE", minval=0.0, step=0.1, group="Fuerza de tendencia")
+avisoLookback = input.int(5, "Barras que dura el aviso de divergencia", minval=1, group="Fuerza de tendencia")
 
-slAtrManual = input.float(1.6, "SL x ATR manual", minval=0.1, step=0.1)
-tpAtrManual = input.float(2.6, "TP x ATR manual", minval=0.1, step=0.1)
+// Entradas
+usarRetroceso = input.bool(true, "Permitir entradas por retroceso a la EMA rapida", group="Entradas")
+
+// Riesgo dinamico (debil = 1x2 / fuerte = 2x4)
+slDebil = input.float(1.0, "SL tendencia DEBIL (xATR)", minval=0.1, step=0.1, group="Riesgo dinamico")
+tpDebil = input.float(2.0, "TP tendencia DEBIL (xATR)", minval=0.1, step=0.1, group="Riesgo dinamico")
+slFuerte = input.float(2.0, "SL tendencia FUERTE (xATR)", minval=0.1, step=0.1, group="Riesgo dinamico")
+tpFuerte = input.float(4.0, "TP tendencia FUERTE (xATR)", minval=0.1, step=0.1, group="Riesgo dinamico")
+cierreParcialPct = input.int(80, "% a cerrar al alcanzar el TP (resto a breakeven)", minval=1, maxval=99, group="Riesgo dinamico")
+
+// Filtros opcionales
+usarVolumen = input.bool(false, "Activar confirmacion por volumen", group="Filtros opcionales")
+volLen = input.int(20, "Media volumen", minval=1, group="Filtros opcionales")
+exigirAbsorcion = input.bool(false, "Exigir absorcion/divergencia favorable", group="Filtros opcionales")
 
 // =====================================================
 // Presets activos
@@ -31,8 +43,6 @@ string emaMode = preset == "15m" ? "9/21" : preset == "1h RSI14" or preset == "1
 int rsiLen = preset == "15m" ? 14 : preset == "1h RSI21" ? 21 : preset == "1h RSI14" ? 14 : rsiManual
 int lateralLookback = preset == "15m" ? 18 : preset == "1h RSI14" or preset == "1h RSI21" ? 24 : lateralLookbackManual
 float ratioLateralMax = preset == "15m" ? 4.5 : preset == "1h RSI14" or preset == "1h RSI21" ? 5.5 : ratioLateralMaxManual
-float slAtr = preset == "15m" ? 1.4 : preset == "1h RSI14" or preset == "1h RSI21" ? 1.8 : slAtrManual
-float tpAtr = preset == "15m" ? 2.2 : preset == "1h RSI14" or preset == "1h RSI21" ? 2.8 : tpAtrManual
 
 // =====================================================
 // Calculos base
@@ -88,14 +98,43 @@ fase = esAcumulacion ? "Acumulacion" : esDistribucion ? "Distribucion" : esMarku
 rupturaAcumulacion = esMarkup and esAcumulacion[1]
 rupturaDistribucion = esMarkdown and esDistribucion[1]
 
+// =====================================================
+// Fuerza de tendencia (divergencia = AVISO, no bloqueo)
+// =====================================================
+
+emaGap = atr > 0 ? math.abs(emaFast - emaSlow) / atr : 0.0
+emaSeparadas = emaGap >= sepMinAtr
+
+bsDivBear = ta.barssince(divBear)
+bsDivBull = ta.barssince(divBull)
+avisoContraLong = not na(bsDivBear) and bsDivBear <= avisoLookback
+avisoContraShort = not na(bsDivBull) and bsDivBull <= avisoLookback
+
+tendenciaFuerteLong = trendLong and emaSeparadas and not avisoContraLong
+tendenciaFuerteShort = trendShort and emaSeparadas and not avisoContraShort
+
+// =====================================================
+// Disparadores: cruce de EMAs o retroceso a la EMA rapida
+// =====================================================
+
 alineacionLongTriple = ema5 > ema8 and ema8 > ema13
 alineacionShortTriple = ema5 < ema8 and ema8 < ema13
 
 cruceLong = emaMode == "5/8/13" ? (alineacionLongTriple and not alineacionLongTriple[1]) : ta.crossover(emaFast, emaSlow)
 cruceShort = emaMode == "5/8/13" ? (alineacionShortTriple and not alineacionShortTriple[1]) : ta.crossunder(emaFast, emaSlow)
 
-rsiLongOk = rsi > 50 and rsiSlope > 0 and not divBear
-rsiShortOk = rsi < 50 and rsiSlope < 0 and not divBull
+pullbackLong = trendLong and low <= emaFast and close > emaFast and close > open
+pullbackShort = trendShort and high >= emaFast and close < emaFast and close < open
+
+disparoLong = cruceLong or (usarRetroceso and pullbackLong)
+disparoShort = cruceShort or (usarRetroceso and pullbackShort)
+
+// =====================================================
+// Confirmaciones (RSI ya NO bloquea por divergencia)
+// =====================================================
+
+rsiLongOk = rsi > 50 and rsiSlope > 0
+rsiShortOk = rsi < 50 and rsiSlope < 0
 
 wyckoffLongOk = esMarkup or rupturaAcumulacion
 wyckoffShortOk = esMarkdown or rupturaDistribucion
@@ -103,51 +142,88 @@ wyckoffShortOk = esMarkdown or rupturaDistribucion
 estructuraLongOk = not exigirAbsorcion or divBull or absorcionBull
 estructuraShortOk = not exigirAbsorcion or divBear or absorcionBear
 
-longCandidate = barstate.isconfirmed and cruceLong and trendLong and rsiLongOk and wyckoffLongOk and not mercadoLateral and volOk and estructuraLongOk
-shortCandidate = barstate.isconfirmed and cruceShort and trendShort and rsiShortOk and wyckoffShortOk and not mercadoLateral and volOk and estructuraShortOk
-
-slLong = close - atr * slAtr
-tpLong = close + atr * tpAtr
-slShort = close + atr * slAtr
-tpShort = close - atr * tpAtr
+longCandidate = barstate.isconfirmed and disparoLong and trendLong and rsiLongOk and wyckoffLongOk and not mercadoLateral and volOk and estructuraLongOk
+shortCandidate = barstate.isconfirmed and disparoShort and trendShort and rsiShortOk and wyckoffShortOk and not mercadoLateral and volOk and estructuraShortOk
 
 // =====================================================
-// Ordenes de backtesting
+// Riesgo dinamico segun fuerza
 // =====================================================
 
+slMultLong = tendenciaFuerteLong ? slFuerte : slDebil
+tpMultLong = tendenciaFuerteLong ? tpFuerte : tpDebil
+slMultShort = tendenciaFuerteShort ? slFuerte : slDebil
+tpMultShort = tendenciaFuerteShort ? tpFuerte : tpDebil
+
+// =====================================================
+// Ordenes de backtesting + gestion (cierre parcial + breakeven)
+// =====================================================
+
+var float slLongFijo = na
+var float tpLongFijo = na
+var bool tpLongHit = false
+var float slShortFijo = na
+var float tpShortFijo = na
+var bool tpShortHit = false
+
+// Entrada LONG
 if longCandidate and strategy.position_size <= 0
-    strategy.close("Short", comment="Cierre por LONG opuesto")
-    strategy.entry("Long", strategy.long, comment="LONG " + fase)
+    if strategy.position_size < 0
+        strategy.close("Short", comment="Cierre por LONG opuesto")
+    strategy.entry("Long", strategy.long, comment="LONG " + (tendenciaFuerteLong ? "FUERTE" : "DEBIL"))
+    slLongFijo := close - atr * slMultLong
+    tpLongFijo := close + atr * tpMultLong
+    tpLongHit := false
 
+// Entrada SHORT
 if shortCandidate and strategy.position_size >= 0
-    strategy.close("Long", comment="Cierre por SHORT opuesto")
-    strategy.entry("Short", strategy.short, comment="SHORT " + fase)
+    if strategy.position_size > 0
+        strategy.close("Long", comment="Cierre por SHORT opuesto")
+    strategy.entry("Short", strategy.short, comment="SHORT " + (tendenciaFuerteShort ? "FUERTE" : "DEBIL"))
+    slShortFijo := close + atr * slMultShort
+    tpShortFijo := close - atr * tpMultShort
+    tpShortHit := false
 
-strategy.exit("XL", from_entry="Long", stop=slLong, limit=tpLong, comment="Salida LONG ATR")
-strategy.exit("XS", from_entry="Short", stop=slShort, limit=tpShort, comment="Salida SHORT ATR")
+// Gestion LONG: 80% al TP y resto con SL a breakeven
+if strategy.position_size > 0
+    if high >= tpLongFijo
+        tpLongHit := true
+    slRunLong = tpLongHit ? strategy.position_avg_price : slLongFijo
+    strategy.exit("TP_L", from_entry="Long", qty_percent=cierreParcialPct, limit=tpLongFijo, comment="TP parcial LONG")
+    strategy.exit("SL_L", from_entry="Long", stop=slRunLong, comment="SL/BE LONG")
+
+// Gestion SHORT: 80% al TP y resto con SL a breakeven
+if strategy.position_size < 0
+    if low <= tpShortFijo
+        tpShortHit := true
+    slRunShort = tpShortHit ? strategy.position_avg_price : slShortFijo
+    strategy.exit("TP_S", from_entry="Short", qty_percent=cierreParcialPct, limit=tpShortFijo, comment="TP parcial SHORT")
+    strategy.exit("SL_S", from_entry="Short", stop=slRunShort, comment="SL/BE SHORT")
 
 // =====================================================
 // Visualizacion
 // =====================================================
 
-plot(emaFast, "EMA rapida", color=color.new(color.green, 0), linewidth=2)
+pFast = plot(emaFast, "EMA rapida", color=color.new(color.green, 0), linewidth=2)
 plot(emaMode == "5/8/13" ? ema8 : na, "EMA media", color=color.new(color.orange, 0), linewidth=1)
-plot(emaSlow, "EMA lenta", color=color.new(color.red, 0), linewidth=2)
+pSlow = plot(emaSlow, "EMA lenta", color=color.new(color.red, 0), linewidth=2)
 plot(ema200, "EMA 200", color=color.new(color.blue, 0), linewidth=2)
+
+cintaCol = tendenciaFuerteLong ? color.new(color.green, 75) : trendLong ? color.new(color.green, 90) : tendenciaFuerteShort ? color.new(color.red, 75) : trendShort ? color.new(color.red, 90) : na
+fill(pFast, pSlow, color=cintaCol, title="Cinta de tendencia")
 
 bgcolor(esAcumulacion ? color.new(color.teal, 86) : esDistribucion ? color.new(color.orange, 86) : na, title="Zonas laterales Wyckoff")
 
 plotshape(longCandidate, title="LONG", style=shape.labelup, location=location.belowbar, color=color.new(color.lime, 0), text="LONG", textcolor=color.white, size=size.tiny)
 plotshape(shortCandidate, title="SHORT", style=shape.labeldown, location=location.abovebar, color=color.new(color.red, 0), text="SHORT", textcolor=color.white, size=size.tiny)
 
-plot(longCandidate ? slLong : na, "SL_LONG", color=color.new(color.red, 100), display=display.data_window)
-plot(longCandidate ? tpLong : na, "TP_LONG", color=color.new(color.green, 100), display=display.data_window)
-plot(shortCandidate ? slShort : na, "SL_SHORT", color=color.new(color.red, 100), display=display.data_window)
-plot(shortCandidate ? tpShort : na, "TP_SHORT", color=color.new(color.green, 100), display=display.data_window)
+plot(longCandidate ? (close - atr * slMultLong) : na, "SL_LONG", color=color.new(color.red, 100), display=display.data_window)
+plot(longCandidate ? (close + atr * tpMultLong) : na, "TP_LONG", color=color.new(color.green, 100), display=display.data_window)
+plot(shortCandidate ? (close + atr * slMultShort) : na, "SL_SHORT", color=color.new(color.red, 100), display=display.data_window)
+plot(shortCandidate ? (close - atr * tpMultShort) : na, "TP_SHORT", color=color.new(color.green, 100), display=display.data_window)
 
 // =====================================================
 // Alertas JSON para webhook
 // =====================================================
 
-alertcondition(longCandidate, title="Alerta LONG Strategy Wyckoff EMA RSI v2", message="{\"event_type\":\"signal.long_candidate\",\"signal\":\"LONG\",\"symbol\":\"{{ticker}}\",\"timeframe\":\"{{interval}}\",\"price\":\"{{close}}\",\"sl\":\"{{plot(\"SL_LONG\")}}\",\"tp\":\"{{plot(\"TP_LONG\")}}\",\"source_module\":\"tradingview.estrategia_wyckoff_ema_rsi_v2\",\"severity\":\"info\"}")
-alertcondition(shortCandidate, title="Alerta SHORT Strategy Wyckoff EMA RSI v2", message="{\"event_type\":\"signal.short_candidate\",\"signal\":\"SHORT\",\"symbol\":\"{{ticker}}\",\"timeframe\":\"{{interval}}\",\"price\":\"{{close}}\",\"sl\":\"{{plot(\"SL_SHORT\")}}\",\"tp\":\"{{plot(\"TP_SHORT\")}}\",\"source_module\":\"tradingview.estrategia_wyckoff_ema_rsi_v2\",\"severity\":\"info\"}")
+alertcondition(longCandidate, title="Alerta LONG Strategy Wyckoff EMA RSI v2", message="{\"event_type\":\"signal.long_candidate\",\"signal\":\"LONG\",\"trend\":\"ALCISTA\",\"symbol\":\"{{ticker}}\",\"timeframe\":\"{{interval}}\",\"price\":\"{{close}}\",\"sl\":\"{{plot(\"SL_LONG\")}}\",\"tp\":\"{{plot(\"TP_LONG\")}}\",\"source_module\":\"tradingview.estrategia_wyckoff_ema_rsi_v2\",\"severity\":\"info\"}")
+alertcondition(shortCandidate, title="Alerta SHORT Strategy Wyckoff EMA RSI v2", message="{\"event_type\":\"signal.short_candidate\",\"signal\":\"SHORT\",\"trend\":\"BAJISTA\",\"symbol\":\"{{ticker}}\",\"timeframe\":\"{{interval}}\",\"price\":\"{{close}}\",\"sl\":\"{{plot(\"SL_SHORT\")}}\",\"tp\":\"{{plot(\"TP_SHORT\")}}\",\"source_module\":\"tradingview.estrategia_wyckoff_ema_rsi_v2\",\"severity\":\"info\"}")

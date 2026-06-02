@@ -1,5 +1,20 @@
 # Changelog
 
+## [2.1.0] - 2026-06-02
+
+### Added
+- Clasificación de tendencia en **FUERTE** / **DÉBIL** (separación de EMAs por ATR + ausencia de divergencia contraria reciente).
+- Cinta de color entre EMA rápida y lenta y panel de estado (dirección, fuerza, fase, RSI) para ver la tendencia con claridad.
+- Entradas por **retroceso** (pullback) a la EMA rápida, además del cruce de EMAs (`usarRetroceso`).
+- Riesgo dinámico según fuerza: tendencia débil → **1×2**, tendencia fuerte → **2×4** (inputs `slDebil/tpDebil/slFuerte/tpFuerte`).
+- Gestión de trade en la estrategia: al alcanzar el TP se cierra el `cierreParcialPct` (80% por defecto) y el resto pasa a breakeven.
+- Campos `trend` y `strength` en las alertas JSON; plots `FUERZA_LONG`/`FUERZA_SHORT` (2=fuerte, 1=débil).
+
+### Changed
+- La divergencia RSI deja de **bloquear** entradas LONG/SHORT y pasa a ser un **aviso** que marca la tendencia como débil.
+- SL/TP dejan de depender del preset y pasan a depender de la fuerza de la tendencia (1×2 / 2×4).
+- `README.md` documenta tendencia/fuerza, riesgo dinámico, gestión 80%+breakeven y entradas por retroceso.
+
 ## [2.0.0] - 2026-06-01
 
 ### Added
