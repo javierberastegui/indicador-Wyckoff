@@ -1,5 +1,23 @@
 # Changelog
 
+## [2.4.0] - 2026-06-02
+
+### Added
+- Modo automático limpio en `indicador_wyckoff_ema_rsi_v2.pine`: el timeframe actual se detecta con `timeframe.in_seconds() / 60` y selecciona EMAs/RSI sin inputs de preset.
+- Panel de estado y Data Window muestran `AUTO`, timeframe actual, EMAs activas y RSI activo.
+- `rsi_panel_wyckoff_helper.pine` pasa a modo automático RSI14 sin preset visible y añade mini panel/Data Window con modo y timeframe.
+
+### Changed
+- Se ocultan como constantes internas los ajustes técnicos de ATR, lateralidad, divergencia, pendiente RSI, pendiente EMA200, fuerza, retroceso, SL/TP y S/R avanzado.
+- La configuración visible queda reducida a visualización, filtros opcionales y el interruptor limpio de soporte/resistencia.
+- La selección automática conserva los valores vigentes: `<=15m` usa EMAs 9/21 + RSI14; `>=60m` e intermedios usan EMAs 10/20 + RSI14.
+- No se tocó `estrategia_wyckoff_ema_rsi_v2.pine`, el runner ATR manual, las alertas ni la lógica de entrada/salida salvo la selección automática de EMAs/RSI.
+
+### Tests
+- Validación documental mediante `python3 scripts/validar_documentacion_viva.py`.
+- Revisión de espacios mediante `git diff --check`.
+- Compilación real de Pine Script sigue pendiente en TradingView.
+
 ## [2.3.1] - 2026-06-02
 
 ### Changed

@@ -1,23 +1,26 @@
 //@version=5
-indicator("Panel RSI Wyckoff Helper v2.3", shorttitle="RSI Panel Wyckoff", overlay=false)
+indicator("Panel RSI Wyckoff Helper v2.4.0 Auto", shorttitle="RSI Panel Wyckoff Auto", overlay=false)
 
 // =====================================================
-// Inputs
+// Inputs visuales
 // =====================================================
 
-preset = input.string("15m", "Preset", options=["15m", "1h RSI14", "1h RSI21", "Manual"])
-rsiManual = input.int(14, "RSI manual", minval=2)
-slopeLookback = input.int(3, "Lookback pendiente RSI", minval=1)
-divLookback = input.int(8, "Lookback divergencia", minval=2)
 mostrarDivergenciasRsi = input.bool(true, "Mostrar divergencias RSI", group="Visualizacion RSI")
 mostrarAbsorcionesRsi = input.bool(true, "Mostrar absorciones RSI", group="Visualizacion RSI")
 mostrarFondoRsi = input.bool(true, "Mostrar fondo operativo RSI", group="Visualizacion RSI")
 
 // =====================================================
-// Calculos RSI y estructura simplificada
+// Configuracion automatica e interna
 // =====================================================
 
-int rsiLen = preset == "15m" ? 14 : preset == "1h RSI21" ? 21 : preset == "1h RSI14" ? 14 : rsiManual
+tfMin = timeframe.in_seconds() / 60
+rsiLen = 14
+slopeLookback = 3
+divLookback = 8
+
+// =====================================================
+// Calculos RSI y estructura simplificada
+// =====================================================
 
 rsi = ta.rsi(close, rsiLen)
 rsiSlope = rsi - rsi[slopeLookback]
@@ -44,10 +47,19 @@ rsiOperativoShort = rsi < 50 and rsiSlope < 0
 fondoRsi = not mostrarFondoRsi ? na : rsiOperativoLong ? color.new(color.green, 90) : rsiOperativoShort ? color.new(color.red, 90) : na
 bgcolor(fondoRsi, title="Fondo operativo RSI")
 
-plot(rsi, "RSI", color=color.new(color.purple, 0), linewidth=2)
+plot(rsi, "RSI AUTO 14", color=color.new(color.purple, 0), linewidth=2)
+plot(tfMin, "TF_MIN_AUTO", color=color.new(color.gray, 100), display=display.data_window)
+plot(rsiLen, "RSI_LEN_AUTO", color=color.new(color.gray, 100), display=display.data_window)
 hline(70, "Sobrecompra", color=color.new(color.red, 35), linestyle=hline.style_dashed, linewidth=1)
 hline(50, "Nivel 50 operativo", color=color.new(color.gray, 0), linestyle=hline.style_solid, linewidth=2)
 hline(30, "Sobreventa", color=color.new(color.green, 35), linestyle=hline.style_dashed, linewidth=1)
+
+var table panelRsi = table.new(position.top_right, 2, 2, border_width=1, frame_color=color.new(color.gray, 60), frame_width=1)
+if barstate.islast
+    table.cell(panelRsi, 0, 0, "Modo", text_color=color.white, bgcolor=color.new(color.blue, 0), text_size=size.small)
+    table.cell(panelRsi, 1, 0, "AUTO RSI14", text_color=color.white, bgcolor=color.new(color.blue, 0), text_size=size.small)
+    table.cell(panelRsi, 0, 1, "TF", text_color=color.white, bgcolor=color.new(color.black, 30), text_size=size.small)
+    table.cell(panelRsi, 1, 1, str.tostring(tfMin, "#.##") + "m", text_color=color.white, bgcolor=color.new(color.black, 30), text_size=size.small)
 
 plotshape(mostrarDivergenciasRsi and divBull, title="DIV+ RSI", style=shape.labelup, location=location.bottom, color=color.new(color.green, 0), text="DIV+", textcolor=color.white, size=size.tiny)
 plotshape(mostrarDivergenciasRsi and divBear, title="DIV- RSI", style=shape.labeldown, location=location.top, color=color.new(color.red, 0), text="DIV-", textcolor=color.white, size=size.tiny)

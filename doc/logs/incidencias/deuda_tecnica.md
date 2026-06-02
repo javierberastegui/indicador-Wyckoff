@@ -14,3 +14,9 @@ Cuando exista código funcional, añadir validaciones específicas para señales
 - Deuda: los ajustes anti-persiana de S/R, etiquetas de fase y texto opcional DIV/ABS no pueden confirmarse solo con validación local.
 - Impacto: queda pendiente revisar compilación Pine y capturas reales para cerrar la deuda visual detectada en TradingView.
 - Siguiente acción: validar `indicador_wyckoff_ema_rsi_v2.pine` en TradingView con S/R apagado y encendido, verificando que no se acumulen líneas cercanas ni textos montados.
+
+### 2026-06-02 — validación modo automático v2.4.0 pendiente en TradingView
+- Dominio: `tradingview`, `core_indicador`, `rsi`.
+- Deuda: la detección automática por `timeframe.in_seconds() / 60` debe confirmarse en TradingView para 15m y 1h.
+- Impacto: hasta compilar en plataforma no se puede cerrar evidencia de que el panel/Data Window muestran correctamente AUTO, EMAs activas y RSI14 en todos los timeframes esperados.
+- Siguiente acción: compilar indicador y helper RSI en TradingView, revisar `BTCUSDT.P` BingX 15m/1h y registrar capturas.

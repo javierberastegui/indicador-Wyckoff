@@ -1,34 +1,9 @@
 //@version=5
-indicator("Indicador Wyckoff + EMA + RSI v2.3.1", shorttitle="Wyckoff EMA RSI v2", overlay=true, max_labels_count=500, max_lines_count=200)
+indicator("Indicador Wyckoff + EMA + RSI v2.4.0", shorttitle="Wyckoff EMA RSI v2", overlay=true, max_labels_count=500, max_lines_count=200)
 
 // =====================================================
-// Inputs
+// Inputs visibles minimos
 // =====================================================
-
-preset = input.string("15m", "Preset operativo", options=["15m", "1h RSI14", "1h RSI21", "Manual"])
-emaModeManual = input.string("10/20", "Modo EMA manual", options=["9/21", "10/20", "5/8/13"])
-rsiManual = input.int(14, "RSI manual", minval=2)
-
-ema200SlopeLookback = input.int(10, "Lookback pendiente EMA200", minval=1)
-slopeLookback = input.int(3, "Lookback pendiente RSI", minval=1)
-atrLen = input.int(14, "ATR", minval=1)
-lateralLookbackManual = input.int(20, "Lookback lateral manual", minval=5)
-ratioLateralMaxManual = input.float(5.0, "Maximo ratio rango/ATR manual", minval=0.5, step=0.1)
-divLookback = input.int(8, "Lookback divergencia", minval=2)
-
-// Fuerza de tendencia
-sepMinAtr = input.float(0.5, "Separacion minima EMAs (xATR) para tendencia FUERTE", minval=0.0, step=0.1, group="Fuerza de tendencia")
-avisoLookback = input.int(5, "Barras que dura el aviso de divergencia", minval=1, group="Fuerza de tendencia")
-
-// Entradas
-usarRetroceso = input.bool(true, "Permitir entradas por retroceso a la EMA rapida", group="Entradas")
-
-// Riesgo dinamico (debil = 1x2 / fuerte = 2x4)
-slDebil = input.float(1.0, "SL tendencia DEBIL (xATR)", minval=0.1, step=0.1, group="Riesgo dinamico")
-tpDebil = input.float(2.0, "TP tendencia DEBIL (xATR)", minval=0.1, step=0.1, group="Riesgo dinamico")
-slFuerte = input.float(2.0, "SL tendencia FUERTE (xATR)", minval=0.1, step=0.1, group="Riesgo dinamico")
-tpFuerte = input.float(4.0, "TP tendencia FUERTE (xATR)", minval=0.1, step=0.1, group="Riesgo dinamico")
-cierreParcialPct = input.int(80, "% a cerrar al alcanzar el TP (resto a breakeven)", minval=1, maxval=99, group="Riesgo dinamico")
 
 // Filtros opcionales
 usarVolumen = input.bool(false, "Activar confirmacion por volumen", group="Filtros opcionales")
@@ -45,23 +20,43 @@ mostrarZonasWyckoff = input.bool(true, "Mostrar zonas Wyckoff", group="Visualiza
 mostrarRetrocesos = input.bool(true, "Mostrar retrocesos", group="Visualizacion")
 mostrarTextoDivAbsOverlay = input.bool(false, "Mostrar texto DIV/ABS en overlay", group="Visualizacion")
 mostrarNombreZonaWyckoff = input.bool(true, "Mostrar nombre zona Wyckoff al cambiar", group="Visualizacion")
-modoEtiquetas = input.string("Compacto", "Modo etiquetas LONG/SHORT", options=["Compacto", "Detallado", "Solo flechas"], group="Visualizacion")
+
+// Soporte / resistencia opcional y limpio
 mostrarSoporteResistencia = input.bool(false, "Mostrar soporte/resistencia", group="Soporte / resistencia")
-pivotLen = input.int(5, "Longitud pivot", minval=1, maxval=50, group="Soporte / resistencia")
-maxLineasSR = input.int(4, "Maximo lineas S/R por lado", minval=1, maxval=20, group="Soporte / resistencia")
-distanciaMinimaSrAtr = input.float(0.8, "Distancia minima S/R duplicada (xATR)", minval=0.1, step=0.1, group="Soporte / resistencia")
-mostrarSoloSrCercano = input.bool(true, "Mostrar solo S/R cerca del precio", group="Soporte / resistencia")
-distanciaSrVisibleAtr = input.float(8.0, "Distancia maxima S/R visible (xATR)", minval=1.0, step=0.5, group="Soporte / resistencia")
 
 // =====================================================
-// Presets activos
+// Configuracion interna fija
 // =====================================================
 
-string emaMode = preset == "15m" ? "9/21" : preset == "1h RSI14" or preset == "1h RSI21" ? "10/20" : emaModeManual
-int rsiLen = preset == "15m" ? 14 : preset == "1h RSI21" ? 21 : preset == "1h RSI14" ? 14 : rsiManual
-int lateralLookback = preset == "15m" ? 18 : preset == "1h RSI14" or preset == "1h RSI21" ? 24 : lateralLookbackManual
-float ratioLateralMax = preset == "15m" ? 4.5 : preset == "1h RSI14" or preset == "1h RSI21" ? 5.5 : ratioLateralMaxManual
+ema200SlopeLookback = 10
+slopeLookback = 3
+atrLen = 14
+divLookback = 8
+sepMinAtr = 0.5
+avisoLookback = 5
+usarRetroceso = true
+slDebil = 1.0
+tpDebil = 2.0
+slFuerte = 2.0
+tpFuerte = 4.0
+cierreParcialPct = 80
+modoEtiquetas = "Compacto"
+pivotLen = 5
+maxLineasSR = 4
+distanciaMinimaSrAtr = 0.8
+mostrarSoloSrCercano = true
+distanciaSrVisibleAtr = 8.0
 
+// =====================================================
+// Modo automatico por timeframe
+// =====================================================
+
+tfMin = timeframe.in_seconds() / 60
+string emaMode = tfMin <= 15 ? "9/21" : "10/20"
+int rsiLen = 14
+int lateralLookback = tfMin <= 15 ? 18 : 24
+float ratioLateralMax = tfMin <= 15 ? 4.5 : 5.5
+emaModeInfo = emaMode == "9/21" ? 921 : 1020
 // =====================================================
 // Calculos base
 // =====================================================
@@ -201,6 +196,9 @@ plot(longCandidate ? (tendenciaFuerteLong ? 2 : 1) : na, "FUERZA_LONG", color=co
 plot(shortCandidate ? (tendenciaFuerteShort ? 2 : 1) : na, "FUERZA_SHORT", color=color.new(color.gray, 100), display=display.data_window)
 plot(rsi, "RSI_INFO", color=color.new(color.purple, 100), display=display.data_window)
 plot(ratioRangoAtr, "RATIO_RANGO_ATR", color=color.new(color.gray, 100), display=display.data_window)
+plot(tfMin, "TF_MIN_AUTO", color=color.new(color.gray, 100), display=display.data_window)
+plot(emaModeInfo, "EMA_MODE_AUTO", color=color.new(color.gray, 100), display=display.data_window)
+plot(rsiLen, "RSI_LEN_AUTO", color=color.new(color.gray, 100), display=display.data_window)
 
 // =====================================================
 // Visualizacion: EMAs + cinta de tendencia
@@ -315,22 +313,28 @@ if modoDetallado and shortCandidate
 // Panel de estado (tendencia clara para el operador)
 // =====================================================
 
-var table panel = table.new(position.top_right, 2, 5, border_width=1, frame_color=color.new(color.gray, 50), frame_width=1)
+var table panel = table.new(position.top_right, 2, 8, border_width=1, frame_color=color.new(color.gray, 50), frame_width=1)
 
 dirCol = trendLong ? color.new(color.green, 0) : trendShort ? color.new(color.red, 0) : color.new(color.gray, 0)
 fuerzaCol = fuerza == "FUERTE" ? color.new(color.green, 0) : fuerza == "DEBIL" ? color.new(color.orange, 0) : color.new(color.gray, 0)
 
 if mostrarPanel and barstate.islast
     table.cell(panel, 0, 0, "ESTADO", text_color=color.white, bgcolor=color.new(color.blue, 0), text_size=size.small)
-    table.cell(panel, 1, 0, "", bgcolor=color.new(color.blue, 0))
-    table.cell(panel, 0, 1, "Tendencia", text_color=color.white, bgcolor=color.new(color.black, 30), text_size=size.small)
-    table.cell(panel, 1, 1, direccion, text_color=color.white, bgcolor=dirCol, text_size=size.small)
-    table.cell(panel, 0, 2, "Fuerza", text_color=color.white, bgcolor=color.new(color.black, 30), text_size=size.small)
-    table.cell(panel, 1, 2, fuerza + (fuerza == "FUERTE" ? "  2x4" : fuerza == "DEBIL" ? "  1x2" : ""), text_color=color.white, bgcolor=fuerzaCol, text_size=size.small)
-    table.cell(panel, 0, 3, "Fase", text_color=color.white, bgcolor=color.new(color.black, 30), text_size=size.small)
-    table.cell(panel, 1, 3, fase, text_color=color.white, bgcolor=color.new(color.black, 30), text_size=size.small)
-    table.cell(panel, 0, 4, "RSI", text_color=color.white, bgcolor=color.new(color.black, 30), text_size=size.small)
-    table.cell(panel, 1, 4, str.tostring(rsi, "#.##"), text_color=color.white, bgcolor=color.new(color.black, 30), text_size=size.small)
+    table.cell(panel, 1, 0, "AUTO", text_color=color.white, bgcolor=color.new(color.blue, 0), text_size=size.small)
+    table.cell(panel, 0, 1, "TF", text_color=color.white, bgcolor=color.new(color.black, 30), text_size=size.small)
+    table.cell(panel, 1, 1, str.tostring(tfMin, "#.##") + "m", text_color=color.white, bgcolor=color.new(color.black, 30), text_size=size.small)
+    table.cell(panel, 0, 2, "EMAs", text_color=color.white, bgcolor=color.new(color.black, 30), text_size=size.small)
+    table.cell(panel, 1, 2, emaMode, text_color=color.white, bgcolor=color.new(color.black, 30), text_size=size.small)
+    table.cell(panel, 0, 3, "RSI activo", text_color=color.white, bgcolor=color.new(color.black, 30), text_size=size.small)
+    table.cell(panel, 1, 3, str.tostring(rsiLen), text_color=color.white, bgcolor=color.new(color.black, 30), text_size=size.small)
+    table.cell(panel, 0, 4, "Tendencia", text_color=color.white, bgcolor=color.new(color.black, 30), text_size=size.small)
+    table.cell(panel, 1, 4, direccion, text_color=color.white, bgcolor=dirCol, text_size=size.small)
+    table.cell(panel, 0, 5, "Fuerza", text_color=color.white, bgcolor=color.new(color.black, 30), text_size=size.small)
+    table.cell(panel, 1, 5, fuerza + (fuerza == "FUERTE" ? "  2x4" : fuerza == "DEBIL" ? "  1x2" : ""), text_color=color.white, bgcolor=fuerzaCol, text_size=size.small)
+    table.cell(panel, 0, 6, "Fase", text_color=color.white, bgcolor=color.new(color.black, 30), text_size=size.small)
+    table.cell(panel, 1, 6, fase, text_color=color.white, bgcolor=color.new(color.black, 30), text_size=size.small)
+    table.cell(panel, 0, 7, "RSI", text_color=color.white, bgcolor=color.new(color.black, 30), text_size=size.small)
+    table.cell(panel, 1, 7, str.tostring(rsi, "#.##"), text_color=color.white, bgcolor=color.new(color.black, 30), text_size=size.small)
 
 // =====================================================
 // Alertas JSON para webhook

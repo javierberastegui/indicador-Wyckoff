@@ -44,3 +44,12 @@ No hay Pine Script confirmado en esta base documental.
 - Cambio: README explica `PB+`/`PB-` y la interpretación del panel de estado.
 - Validación: documentación viva y revisión de diff ejecutadas localmente; TradingView debe confirmar compilación y legibilidad real.
 - Pendiente: revisar en TradingView que S/R ya no genere efecto persiana y registrar capturas en 1h/15m.
+
+### 2026-06-02 — v2.4.0 modo AUTO para operar rápido
+- Dominio: `tradingview`.
+- Cambio: la configuración visible se reduce a visualización, filtros opcionales y el interruptor de soporte/resistencia; se eliminan presets y ajustes técnicos visibles del indicador.
+- Cambio: el overlay muestra en panel y Data Window `AUTO`, timeframe actual, EMAs activas y RSI activo.
+- Cambio: `rsi_panel_wyckoff_helper.pine` elimina preset visible y muestra `AUTO RSI14` con timeframe actual.
+- Cambio: la selección automática conserva 15m con EMAs 9/21 + RSI14 y 1h/intermedios con EMAs 10/20 + RSI14.
+- Validación: documentación viva y revisión de diff ejecutadas localmente; TradingView debe confirmar compilación y legibilidad real.
+- Pendiente: validar en TradingView que el panel refleje correctamente 15m y 1h, y registrar capturas.
