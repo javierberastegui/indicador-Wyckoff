@@ -102,6 +102,12 @@ Interpretación del panel de estado:
 - **Fase** = lectura Wyckoff simplificada del contexto, no una fase clásica completa validada.
 - **RSI** = confirmador estructural; no debe leerse como señal aislada.
 
+Interpretación del panel de estado:
+- **Tendencia** = dirección estructural según precio, EMA200 y pendiente de EMA200.
+- **Fuerza** = clasificación fuerte/débil y ratio sugerido según separación de EMAs y divergencia contraria reciente.
+- **Fase** = lectura Wyckoff simplificada del contexto, no una fase clásica completa validada.
+- **RSI** = confirmador estructural; no debe leerse como señal aislada.
+
 Una **tendencia FUERTE** requiere: dirección clara respecto a EMA200, EMAs rápida/lenta bien separadas (≥ `sepMinAtr` × ATR) y **sin divergencia contraria reciente**. En caso contrario la tendencia es **DÉBIL**.
 
 La divergencia ya **no impide** abrir LONG/SHORT: solo marca la tendencia como débil y, por tanto, fuerza el riesgo conservador **1×2**.
@@ -118,6 +124,11 @@ Inputs de trailing en la estrategia: tendencia débil usa `trailDebil = 1.2` (m�
 ### Entradas por retroceso
 
 Con `usarRetroceso` activo internamente se generan señales cuando el precio retrocede a la EMA rápida y rebota en la dirección de la tendencia. Así no se pierden tramos largos de tendencia entre cruces.
+
+Lectura visual de retrocesos:
+- `PB+` = retroceso en tendencia alcista hacia la EMA rápida.
+- `PB-` = retroceso en tendencia bajista hacia la EMA rápida.
+- `PB+`/`PB-` no son una entrada por sí solos; ayudan a identificar una posible continuación dentro del contexto, mientras la señal confirmada sigue siendo LONG/SHORT.
 
 Lectura visual de retrocesos:
 - `PB+` = retroceso en tendencia alcista hacia la EMA rápida.
