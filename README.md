@@ -31,7 +31,7 @@ La v2.0 implementa una lectura operativa simplificada de Wyckoff combinada con:
 - divergencia RSI simple como **aviso de tendencia débil** (no bloquea entradas),
 - clasificación de tendencia en **FUERTE** o **DÉBIL** (cinta de color + panel de estado),
 - riesgo dinámico: tendencia débil → **1×2**, tendencia fuerte → **2×4**,
-- gestión de trade: al alcanzar el TP se cierra el 80% y el resto pasa a breakeven,
+- gestión de trade en estrategia: entrada completa, SL inicial para toda la posición, TP parcial configurable y runner posterior con breakeven + trailing manual ATR tipo chandelier con ratchet,
 - detección aproximada de absorción,
 - filtro de lateralidad por rango/ATR,
 - confirmación opcional por volumen,
@@ -56,7 +56,9 @@ La divergencia ya **no impide** abrir LONG/SHORT: solo marca la tendencia como d
 | DÉBIL | 1.0 | 2.0 | 1×2 |
 | FUERTE | 2.0 | 4.0 | 2×4 |
 
-Gestión al alcanzar el TP: se cierra el **80%** de la posición y el **20% restante** continúa con el Stop movido al **precio de entrada (breakeven)** para dejar correr la tendencia sin riesgo. El porcentaje es configurable (`cierreParcialPct`).
+Gestión en la estrategia: la entrada abre la posición completa con un **SL inicial efectivo para toda la posición**. Al tocar el TP parcial se cierra solo el porcentaje configurado en `cierreParcialPct` (**80% por defecto**) y el runner conserva el resto de la posición. Tras ejecutarse el parcial, el runner pasa primero a **breakeven** y después usa trailing manual ATR estilo chandelier con ratchet: en LONG guarda el máximo desde entrada y calcula `máximo - ATR × multiplicador`; en SHORT guarda el mínimo desde entrada y calcula `mínimo + ATR × multiplicador`. El stop del runner solo avanza a favor y nunca retrocede.
+
+Inputs de trailing en `Riesgo dinamico`: tendencia débil usa `trailDebil = 1.2` (más corto) y tendencia fuerte usa `trailFuerte = 2.5` (más amplio). Las salidas del runner quedan silenciosas; no se añaden eventos `risk.*` en esta iteración.
 
 ### Entradas por retroceso
 

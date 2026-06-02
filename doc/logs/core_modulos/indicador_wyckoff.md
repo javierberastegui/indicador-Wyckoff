@@ -14,6 +14,16 @@
 - Evidencia: archivos `indicador_wyckoff_ema_rsi_v2.pine`, `estrategia_wyckoff_ema_rsi_v2.pine`, `rsi_panel_wyckoff_helper.pine` añadidos en rama `feat/wyckoff-ema-rsi-v2`.
 - Pendiente: probar `BTCUSDT.P` BingX en 1h preset `1h RSI14`; después comparar con `15m`.
 
+### 2026-06-02 — v2.2 gestion parcial + runner ATR
+- Dominio: `core_indicador`, `senales`, `validacion`.
+- Cambio: mantenida la lógica de entrada actual y Pine Script v5; ajustada solo la gestión de salidas de `estrategia_wyckoff_ema_rsi_v2.pine`.
+- Cambio: añadidos `trailDebil=1.2` y `trailFuerte=2.5` en `Riesgo dinamico`; el TP parcial usa `cierreParcialPct` 80% por defecto y deja runner con el resto.
+- Cambio: SL inicial cubre toda la posición; tras tocar TP parcial el runner pasa a breakeven y luego usa trailing manual ATR tipo chandelier con ratchet, sin retroceder.
+- Cambio: el TP parcial ya no se emite si `parcialLongHecho`/`parcialShortHecho` es verdadero, evitando cierres repetidos del runner en el precio del TP.
+- Validación: `python3 scripts/validar_documentacion_viva.py` ejecutado correctamente; compilación real de Pine queda pendiente en TradingView.
+- Evidencia: cambios en `estrategia_wyckoff_ema_rsi_v2.pine`, `README.md`, `CHANGELOG.md` y documentación viva.
+- Pendiente: compilar en TradingView y validar en Strategy Tester sobre `BTCUSDT.P` BingX 1h con preset `1h RSI14`.
+
 ## Plantilla
 ```md
 ### YYYY-MM-DD — título

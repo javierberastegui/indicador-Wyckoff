@@ -1,5 +1,20 @@
 # Changelog
 
+## [2.2.0] - 2026-06-02
+
+### Added
+- Inputs `trailDebil` (1.2) y `trailFuerte` (2.5) en el grupo `Riesgo dinamico` de la estrategia para trailing manual ATR tipo chandelier.
+
+### Changed
+- La estrategia mantiene la lógica de entrada v2.1, Pine Script v5 y la capa central de alertas sin añadir eventos `risk.*`.
+- La gestión de salidas pasa a entrada completa con SL inicial para toda la posición, TP parcial configurable (`cierreParcialPct`, 80% por defecto) y runner con breakeven + trailing ATR manual con ratchet.
+- El TP parcial deja de emitirse cuando el parcial ya fue marcado como ejecutado, evitando cierres repetidos del runner en el precio del TP parcial.
+- Al cerrar o girar posición se limpian SL/TP fijos, estado del parcial, stop del runner y máximo/mínimo desde entrada.
+
+### Tests
+- Validación documental mediante `python3 scripts/validar_documentacion_viva.py`.
+- Compilación real de Pine Script sigue pendiente en TradingView.
+
 ## [2.1.0] - 2026-06-02
 
 ### Added

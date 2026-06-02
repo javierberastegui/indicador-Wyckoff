@@ -28,7 +28,9 @@ slDebil = input.float(1.0, "SL tendencia DEBIL (xATR)", minval=0.1, step=0.1, gr
 tpDebil = input.float(2.0, "TP tendencia DEBIL (xATR)", minval=0.1, step=0.1, group="Riesgo dinamico")
 slFuerte = input.float(2.0, "SL tendencia FUERTE (xATR)", minval=0.1, step=0.1, group="Riesgo dinamico")
 tpFuerte = input.float(4.0, "TP tendencia FUERTE (xATR)", minval=0.1, step=0.1, group="Riesgo dinamico")
-cierreParcialPct = input.int(80, "% a cerrar al alcanzar el TP (resto a breakeven)", minval=1, maxval=99, group="Riesgo dinamico")
+cierreParcialPct = input.int(80, "% a cerrar al alcanzar el TP parcial", minval=1, maxval=99, group="Riesgo dinamico")
+trailDebil = input.float(1.2, "Trailing tendencia DEBIL (xATR)", minval=0.1, step=0.1, group="Riesgo dinamico")
+trailFuerte = input.float(2.5, "Trailing tendencia FUERTE (xATR)", minval=0.1, step=0.1, group="Riesgo dinamico")
 
 // Filtros opcionales
 usarVolumen = input.bool(false, "Activar confirmacion por volumen", group="Filtros opcionales")
@@ -155,49 +157,113 @@ slMultShort = tendenciaFuerteShort ? slFuerte : slDebil
 tpMultShort = tendenciaFuerteShort ? tpFuerte : tpDebil
 
 // =====================================================
-// Ordenes de backtesting + gestion (cierre parcial + breakeven)
+// Ordenes de backtesting + gestion (parcial + runner ATR manual)
 // =====================================================
+
+runnerPct = 100 - cierreParcialPct
+runnerRatio = runnerPct / 100.0
+trailMultLong = tendenciaFuerteLong ? trailFuerte : trailDebil
+trailMultShort = tendenciaFuerteShort ? trailFuerte : trailDebil
 
 var float slLongFijo = na
 var float tpLongFijo = na
-var bool tpLongHit = false
+var bool parcialLongHecho = false
+var float stopRunnerLong = na
+var float maxLongDesdeEntrada = na
+var float qtyLongInicial = na
 var float slShortFijo = na
 var float tpShortFijo = na
-var bool tpShortHit = false
+var bool parcialShortHecho = false
+var float stopRunnerShort = na
+var float minShortDesdeEntrada = na
+var float qtyShortInicial = na
+
+// Limpieza de estado cuando no queda posicion abierta.
+if strategy.position_size == 0
+    slLongFijo := na
+    tpLongFijo := na
+    parcialLongHecho := false
+    stopRunnerLong := na
+    maxLongDesdeEntrada := na
+    qtyLongInicial := na
+    slShortFijo := na
+    tpShortFijo := na
+    parcialShortHecho := false
+    stopRunnerShort := na
+    minShortDesdeEntrada := na
+    qtyShortInicial := na
 
 // Entrada LONG
 if longCandidate and strategy.position_size <= 0
     if strategy.position_size < 0
         strategy.close("Short", comment="Cierre por LONG opuesto")
+    slShortFijo := na
+    tpShortFijo := na
+    parcialShortHecho := false
+    stopRunnerShort := na
+    minShortDesdeEntrada := na
+    qtyShortInicial := na
     strategy.entry("Long", strategy.long, comment="LONG " + (tendenciaFuerteLong ? "FUERTE" : "DEBIL"))
     slLongFijo := close - atr * slMultLong
     tpLongFijo := close + atr * tpMultLong
-    tpLongHit := false
+    parcialLongHecho := false
+    stopRunnerLong := na
+    maxLongDesdeEntrada := high
+    qtyLongInicial := na
 
 // Entrada SHORT
 if shortCandidate and strategy.position_size >= 0
     if strategy.position_size > 0
         strategy.close("Long", comment="Cierre por SHORT opuesto")
+    slLongFijo := na
+    tpLongFijo := na
+    parcialLongHecho := false
+    stopRunnerLong := na
+    maxLongDesdeEntrada := na
+    qtyLongInicial := na
     strategy.entry("Short", strategy.short, comment="SHORT " + (tendenciaFuerteShort ? "FUERTE" : "DEBIL"))
     slShortFijo := close + atr * slMultShort
     tpShortFijo := close - atr * tpMultShort
-    tpShortHit := false
+    parcialShortHecho := false
+    stopRunnerShort := na
+    minShortDesdeEntrada := low
+    qtyShortInicial := na
 
-// Gestion LONG: 80% al TP y resto con SL a breakeven
+// Gestion LONG: SL inicial para toda la posicion, TP parcial unico y runner con BE + trailing ATR ratchet.
 if strategy.position_size > 0
-    if high >= tpLongFijo
-        tpLongHit := true
-    slRunLong = tpLongHit ? strategy.position_avg_price : slLongFijo
-    strategy.exit("TP_L", from_entry="Long", qty_percent=cierreParcialPct, limit=tpLongFijo, comment="TP parcial LONG")
-    strategy.exit("SL_L", from_entry="Long", stop=slRunLong, comment="SL/BE LONG")
+    maxLongDesdeEntrada := na(maxLongDesdeEntrada) ? high : math.max(maxLongDesdeEntrada, high)
+    qtyLongInicial := na(qtyLongInicial) ? math.abs(strategy.position_size) : qtyLongInicial
+    breakevenLong = strategy.position_avg_price
+    qtyRunnerLongObjetivo = qtyLongInicial * runnerRatio
+    parcialLongEjecutado = not na(qtyLongInicial) and math.abs(strategy.position_size) <= qtyRunnerLongObjetivo + qtyLongInicial * 0.001
+    if parcialLongEjecutado
+        parcialLongHecho := true
+        stopRunnerLong := nz(stopRunnerLong, breakevenLong)
+    if not parcialLongHecho
+        strategy.exit("TP_L", from_entry="Long", qty_percent=cierreParcialPct, limit=tpLongFijo, stop=slLongFijo, comment="TP parcial/SL inicial LONG")
+        strategy.exit("RUN_L", from_entry="Long", qty_percent=runnerPct, stop=slLongFijo, comment="SL inicial runner LONG")
+    else
+        stopCandidatoLong = maxLongDesdeEntrada - atr * trailMultLong
+        stopRunnerLong := math.max(math.max(nz(stopRunnerLong, breakevenLong), breakevenLong), stopCandidatoLong)
+        strategy.exit("RUN_L", from_entry="Long", qty_percent=runnerPct, stop=stopRunnerLong, comment="Runner BE/trailing LONG")
 
-// Gestion SHORT: 80% al TP y resto con SL a breakeven
+// Gestion SHORT: SL inicial para toda la posicion, TP parcial unico y runner con BE + trailing ATR ratchet.
 if strategy.position_size < 0
-    if low <= tpShortFijo
-        tpShortHit := true
-    slRunShort = tpShortHit ? strategy.position_avg_price : slShortFijo
-    strategy.exit("TP_S", from_entry="Short", qty_percent=cierreParcialPct, limit=tpShortFijo, comment="TP parcial SHORT")
-    strategy.exit("SL_S", from_entry="Short", stop=slRunShort, comment="SL/BE SHORT")
+    minShortDesdeEntrada := na(minShortDesdeEntrada) ? low : math.min(minShortDesdeEntrada, low)
+    qtyShortInicial := na(qtyShortInicial) ? math.abs(strategy.position_size) : qtyShortInicial
+    breakevenShort = strategy.position_avg_price
+    qtyRunnerShortObjetivo = qtyShortInicial * runnerRatio
+    parcialShortEjecutado = not na(qtyShortInicial) and math.abs(strategy.position_size) <= qtyRunnerShortObjetivo + qtyShortInicial * 0.001
+    if parcialShortEjecutado
+        parcialShortHecho := true
+        stopRunnerShort := nz(stopRunnerShort, breakevenShort)
+    if not parcialShortHecho
+        strategy.exit("TP_S", from_entry="Short", qty_percent=cierreParcialPct, limit=tpShortFijo, stop=slShortFijo, comment="TP parcial/SL inicial SHORT")
+        strategy.exit("RUN_S", from_entry="Short", qty_percent=runnerPct, stop=slShortFijo, comment="SL inicial runner SHORT")
+    else
+        stopCandidatoShort = minShortDesdeEntrada + atr * trailMultShort
+        stopRunnerShort := math.min(math.min(nz(stopRunnerShort, breakevenShort), breakevenShort), stopCandidatoShort)
+        strategy.exit("RUN_S", from_entry="Short", qty_percent=runnerPct, stop=stopRunnerShort, comment="Runner BE/trailing SHORT")
 
 // =====================================================
 // Visualizacion
