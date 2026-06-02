@@ -25,10 +25,13 @@ En Pine Script la separación se expresa así:
 ## Indicador Wyckoff + EMA + RSI v2.0
 
 La v2.0 implementa una lectura operativa simplificada de Wyckoff combinada con:
-- cruces EMA configurables,
+- cruces EMA configurables y entradas por retroceso (pullback) a la EMA rápida,
 - filtro de tendencia con EMA200,
 - confirmación RSI por nivel 50 y pendiente,
-- divergencia RSI simple,
+- divergencia RSI simple como **aviso de tendencia débil** (no bloquea entradas),
+- clasificación de tendencia en **FUERTE** o **DÉBIL** (cinta de color + panel de estado),
+- riesgo dinámico: tendencia débil → **1×2**, tendencia fuerte → **2×4**,
+- gestión de trade: al alcanzar el TP se cierra el 80% y el resto pasa a breakeven,
 - detección aproximada de absorción,
 - filtro de lateralidad por rango/ATR,
 - confirmación opcional por volumen,
@@ -36,6 +39,28 @@ La v2.0 implementa una lectura operativa simplificada de Wyckoff combinada con:
 - estrategia separada para backtesting.
 
 La detección Wyckoff es heurística. No pretende identificar toda la metodología clásica; aproxima fases útiles para operar y validar señales.
+
+### Tendencia, fuerza y gestión de riesgo
+
+El indicador prioriza que la tendencia se vea **clara**:
+
+- **Cinta de color** entre la EMA rápida y la lenta: verde (alcista) o roja (bajista). Más opaca = tendencia **FUERTE**; más tenue = tendencia **DÉBIL**.
+- **Panel de estado** (esquina superior derecha): dirección, fuerza (con su ratio 1×2 / 2×4), fase Wyckoff y RSI.
+
+Una **tendencia FUERTE** requiere: dirección clara respecto a EMA200, EMAs rápida/lenta bien separadas (≥ `sepMinAtr` × ATR) y **sin divergencia contraria reciente**. En caso contrario la tendencia es **DÉBIL**.
+
+La divergencia ya **no impide** abrir LONG/SHORT: solo marca la tendencia como débil y, por tanto, fuerza el riesgo conservador **1×2**.
+
+| Fuerza | SL (xATR) | TP (xATR) | Ratio |
+|---|---:|---:|---:|
+| DÉBIL | 1.0 | 2.0 | 1×2 |
+| FUERTE | 2.0 | 4.0 | 2×4 |
+
+Gestión al alcanzar el TP: se cierra el **80%** de la posición y el **20% restante** continúa con el Stop movido al **precio de entrada (breakeven)** para dejar correr la tendencia sin riesgo. El porcentaje es configurable (`cierreParcialPct`).
+
+### Entradas por retroceso
+
+Además del cruce de EMAs, con `usarRetroceso` activado se generan señales cuando el precio retrocede a la EMA rápida y rebota en la dirección de la tendencia. Así no se pierden tramos largos de tendencia entre cruces.
 
 ## Archivos principales
 
@@ -75,28 +100,30 @@ Permite elegir modo EMA `9/21`, `10/20` o `5/8/13`, además del RSI manual.
 ### LONG
 
 Una señal LONG requiere:
-- cruce o alineación EMA válida,
+- cruce de EMAs válido **o** retroceso a la EMA rápida (si `usarRetroceso` está activo),
 - precio por encima de EMA200,
 - pendiente de EMA200 positiva,
 - RSI > 50,
 - pendiente RSI positiva,
-- sin divergencia bajista activa,
 - mercado fuera de lateralidad,
 - volumen válido si el filtro de volumen está activo,
 - absorción/divergencia favorable si se exige estructura extra.
+
+La divergencia bajista **ya no bloquea** la señal: solo marca la tendencia como débil (riesgo 1×2).
 
 ### SHORT
 
 Una señal SHORT requiere:
-- cruce o alineación EMA válida,
+- cruce de EMAs válido **o** retroceso a la EMA rápida (si `usarRetroceso` está activo),
 - precio por debajo de EMA200,
 - pendiente de EMA200 negativa,
 - RSI < 50,
 - pendiente RSI negativa,
-- sin divergencia alcista activa,
 - mercado fuera de lateralidad,
 - volumen válido si el filtro de volumen está activo,
 - absorción/divergencia favorable si se exige estructura extra.
+
+La divergencia alcista **ya no bloquea** la señal: solo marca la tendencia como débil (riesgo 1×2).
 
 ## Alertas JSON
 
