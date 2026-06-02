@@ -35,3 +35,12 @@ No hay Pine Script confirmado en esta base documental.
 - Cambio: divergencias/absorciones en overlay se reducen a iconos sin texto y con separación por ATR; el panel RSI muestra textos claros `DIV+`, `DIV-`, `ABS+`, `ABS-`.
 - Validación: documentación viva y revisión de diff ejecutadas localmente; TradingView debe confirmar compilación y legibilidad real.
 - Pendiente: capturar ejemplos visuales en `BTCUSDT.P` BingX para presets `1h RSI14`, `1h RSI21` y `15m`.
+
+### 2026-06-02 — v2.3.1 limpieza de ruido visual
+- Dominio: `tradingview`.
+- Cambio: soporte/resistencia sigue desactivado por defecto, limita 4 líneas por lado, evita pivots duplicados cercanos por ATR y permite ocultar líneas alejadas del precio actual.
+- Cambio: divergencias/absorciones en overlay quedan como iconos pequeños sin texto por defecto; `mostrarTextoDivAbsOverlay` permite reactivar texto si se necesita depurar.
+- Cambio: zonas Wyckoff añaden etiquetas compactas solo en cambios de fase (`ACUM`, `DIST`, `MARKUP`, `MARKDOWN`) para que el fondo no se perciba solo como rojo/verde.
+- Cambio: README explica `PB+`/`PB-` y la interpretación del panel de estado.
+- Validación: documentación viva y revisión de diff ejecutadas localmente; TradingView debe confirmar compilación y legibilidad real.
+- Pendiente: revisar en TradingView que S/R ya no genere efecto persiana y registrar capturas en 1h/15m.

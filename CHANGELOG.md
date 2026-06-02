@@ -1,5 +1,19 @@
 # Changelog
 
+## [2.3.1] - 2026-06-02
+
+### Changed
+- Limpieza visual del overlay: soporte/resistencia mantiene `mostrarSoporteResistencia=false` por defecto, baja `maxLineasSR` a 4 por lado y añade filtro de duplicados con `distanciaMinimaSrAtr`.
+- Las líneas S/R son más transparentes y pueden ocultarse si están lejos del precio con `mostrarSoloSrCercano` y `distanciaSrVisibleAtr`, evitando efecto persiana.
+- Divergencias y absorciones del overlay mantienen iconos pequeños sin texto por defecto y añaden `mostrarTextoDivAbsOverlay=false` para activar texto solo si se necesita.
+- Zonas Wyckoff mantienen fondo suave y añaden etiqueta compacta de cambio de fase (`ACUM`, `DIST`, `MARKUP`, `MARKDOWN`) mediante `mostrarNombreZonaWyckoff`.
+- README documenta `PB+`/`PB-` y la lectura del panel de estado.
+
+### Tests
+- Validación documental mediante `python3 scripts/validar_documentacion_viva.py`.
+- Revisión de espacios mediante `git diff --check`.
+- Compilación real de Pine Script sigue pendiente en TradingView.
+
 ## [2.3.0] - 2026-06-02
 
 ### Added
