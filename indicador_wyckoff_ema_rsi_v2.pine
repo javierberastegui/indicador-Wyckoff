@@ -166,10 +166,10 @@ plotshape(mostrarAbsorciones and absorcionBull, title="Absorcion alcista", style
 plotshape(mostrarAbsorciones and absorcionBear, title="Absorcion bajista", style=shape.circle, location=location.abovebar, color=color.new(color.fuchsia, 0), size=size.tiny, text="ABS-")
 
 if mostrarFase and alertLongRuleMatched
-    label.new(bar_index, low, "LONG\n" + fase + "\nRSI: " + str.tostring(rsi, format.mintick), style=label.style_label_up, textcolor=color.white, color=color.new(color.green, 0))
+    label.new(bar_index, low, "LONG\n" + fase + "\nRSI: " + str.tostring(rsi, "#.##"), style=label.style_label_up, textcolor=color.white, color=color.new(color.green, 0))
 
 if mostrarFase and alertShortRuleMatched
-    label.new(bar_index, high, "SHORT\n" + fase + "\nRSI: " + str.tostring(rsi, format.mintick), style=label.style_label_down, textcolor=color.white, color=color.new(color.red, 0))
+    label.new(bar_index, high, "SHORT\n" + fase + "\nRSI: " + str.tostring(rsi, "#.##"), style=label.style_label_down, textcolor=color.white, color=color.new(color.red, 0))
 
 // =====================================================
 // Alertas JSON para webhook
