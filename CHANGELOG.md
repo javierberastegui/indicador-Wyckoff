@@ -1,5 +1,56 @@
 # Changelog
 
+## [2.4.0] - 2026-06-02
+
+### Added
+- Modo automático limpio en `indicador_wyckoff_ema_rsi_v2.pine`: el timeframe actual se detecta con `timeframe.in_seconds() / 60` y selecciona EMAs/RSI sin inputs de preset.
+- Panel de estado y Data Window muestran `AUTO`, timeframe actual, EMAs activas y RSI activo.
+- `rsi_panel_wyckoff_helper.pine` pasa a modo automático RSI14 sin preset visible y añade mini panel/Data Window con modo y timeframe.
+
+### Changed
+- Se ocultan como constantes internas los ajustes técnicos de ATR, lateralidad, divergencia, pendiente RSI, pendiente EMA200, fuerza, retroceso, SL/TP y S/R avanzado.
+- La configuración visible queda reducida a visualización, filtros opcionales y el interruptor limpio de soporte/resistencia.
+- La selección automática conserva los valores vigentes: `<=15m` usa EMAs 9/21 + RSI14; `>=60m` e intermedios usan EMAs 10/20 + RSI14.
+- No se tocó `estrategia_wyckoff_ema_rsi_v2.pine`, el runner ATR manual, las alertas ni la lógica de entrada/salida salvo la selección automática de EMAs/RSI.
+
+### Tests
+- Validación documental mediante `python3 scripts/validar_documentacion_viva.py`.
+- Revisión de espacios mediante `git diff --check`.
+- Compilación real de Pine Script sigue pendiente en TradingView.
+
+## [2.3.1] - 2026-06-02
+
+### Changed
+- Limpieza visual del overlay: soporte/resistencia mantiene `mostrarSoporteResistencia=false` por defecto, baja `maxLineasSR` a 4 por lado y añade filtro de duplicados con `distanciaMinimaSrAtr`.
+- Las líneas S/R son más transparentes y pueden ocultarse si están lejos del precio con `mostrarSoloSrCercano` y `distanciaSrVisibleAtr`, evitando efecto persiana.
+- Divergencias y absorciones del overlay mantienen iconos pequeños sin texto por defecto y añaden `mostrarTextoDivAbsOverlay=false` para activar texto solo si se necesita.
+- Zonas Wyckoff mantienen fondo suave y añaden etiqueta compacta de cambio de fase (`ACUM`, `DIST`, `MARKUP`, `MARKDOWN`) mediante `mostrarNombreZonaWyckoff`.
+- README documenta `PB+`/`PB-` y la lectura del panel de estado.
+
+### Tests
+- Validación documental mediante `python3 scripts/validar_documentacion_viva.py`.
+- Revisión de espacios mediante `git diff --check`.
+- Compilación real de Pine Script sigue pendiente en TradingView.
+
+## [2.3.0] - 2026-06-02
+
+### Added
+- Mejora visual del indicador overlay con inputs `mostrarCrucesEma`, `mostrarZonasWyckoff`, `mostrarRetrocesos`, `mostrarSoporteResistencia`, `pivotLen`, `maxLineasSR` y `modoEtiquetas`.
+- Marcadores independientes `EMA+`/`EMA-` para cruces EMA y `PB+`/`PB-` para retrocesos a EMA rápida, sin añadir alertas nuevas.
+- Zonas Wyckoff de fondo para acumulación, distribución, markup y markdown con colores suaves.
+- Soporte/resistencia opcional por pivots con arrays de líneas, extensión a la derecha y límite configurable de líneas.
+- Panel RSI v2.3 con inputs para divergencias, absorciones y fondo operativo RSI.
+
+### Changed
+- LONG/SHORT usan `modoEtiquetas` para separar modo compacto, detallado y solo flechas; por defecto se evita la etiqueta grande con SL/TP/fase.
+- Divergencias y absorciones del overlay pasan a iconos sin texto con offset por ATR para reducir solapamientos; el texto operativo queda en el helper RSI.
+- La mejora visual no cambia lógica de entrada/salida, no toca la estrategia ni el runner ATR manual, y mantiene la capa central de alertas al final del indicador.
+
+### Tests
+- Validación documental mediante `python3 scripts/validar_documentacion_viva.py`.
+- Revisión de espacios mediante `git diff --check`.
+- Compilación real de Pine Script sigue pendiente en TradingView.
+
 ## [2.2.0] - 2026-06-02
 
 ### Added

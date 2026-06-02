@@ -33,3 +33,31 @@
 - Evidencia:
 - Pendiente:
 ```
+
+### 2026-06-02 — v2.3 mejora visual overlay y RSI
+- Dominio: `core_indicador`, `emas`, `rsi`, `senales`, `tradingview`.
+- Cambio: `indicador_wyckoff_ema_rsi_v2.pine` mantiene la lógica de entrada/salida y la capa central de alertas, pero añade jerarquía visual con `modoEtiquetas`, cruces `EMA+`/`EMA-`, retrocesos `PB+`/`PB-`, zonas Wyckoff completas y soporte/resistencia opcional por pivots.
+- Cambio: divergencias y absorciones del overlay pasan a iconos sin texto con offset por ATR para reducir solapamientos; el texto `DIV`/`ABS` queda en el helper RSI separado.
+- Cambio: `rsi_panel_wyckoff_helper.pine` añade fondo operativo RSI, inputs para divergencias/absorciones/fondo y absorción aproximada con la misma heurística del overlay.
+- Validación: `python3 scripts/validar_documentacion_viva.py` y `git diff --check` ejecutados correctamente; compilación real de Pine queda pendiente en TradingView.
+- Evidencia: cambios en `indicador_wyckoff_ema_rsi_v2.pine`, `rsi_panel_wyckoff_helper.pine`, `README.md`, `CHANGELOG.md` y documentación viva.
+- Pendiente: compilar indicador/helper en TradingView, revisar visualmente `BTCUSDT.P` BingX en 1h y 15m, y registrar capturas/evidencia sin afirmar rentabilidad.
+
+### 2026-06-02 — v2.3.1 limpieza visual TradingView
+- Dominio: `core_indicador`, `tradingview`, `rsi`, `documentacion`.
+- Cambio: `indicador_wyckoff_ema_rsi_v2.pine` conserva lógica de señales, entradas/salidas y alertas centrales, pero limpia S/R reduciendo `maxLineasSR` a 4 por lado, añadiendo `distanciaMinimaSrAtr` y ocultación opcional de líneas lejanas.
+- Cambio: divergencias/absorciones del overlay quedan sin texto por defecto mediante `mostrarTextoDivAbsOverlay=false`; el texto operativo se mantiene en el panel RSI.
+- Cambio: zonas Wyckoff mantienen fondo suave y añaden etiqueta compacta solo al cambiar de fase (`ACUM`, `DIST`, `MARKUP`, `MARKDOWN`) con `mostrarNombreZonaWyckoff`.
+- Validación: `python3 scripts/validar_documentacion_viva.py` y `git diff --check` ejecutados correctamente; compilación real de Pine queda pendiente en TradingView.
+- Evidencia: cambios en `indicador_wyckoff_ema_rsi_v2.pine`, `README.md`, `CHANGELOG.md` y documentación viva; no se tocó `estrategia_wyckoff_ema_rsi_v2.pine`.
+- Pendiente: compilar indicador/helper en TradingView y validar visualmente S/R, DIV/ABS, zonas y PB en `BTCUSDT.P` BingX 1h/15m.
+
+### 2026-06-02 — v2.4.0 modo automático limpio
+- Dominio: `core_indicador`, `emas`, `rsi`, `senales`, `tradingview`, `documentacion`.
+- Cambio: `indicador_wyckoff_ema_rsi_v2.pine` elimina inputs visibles de preset, modo EMA manual y RSI manual; selecciona automáticamente EMAs/RSI con `timeframe.in_seconds() / 60`.
+- Cambio: `<=15m` usa EMAs 9/21 + RSI14; `>=60m` e intermedios usan EMAs 10/20 + RSI14; lateralidad conserva 18/4.5 para 15m y 24/5.5 para el resto.
+- Cambio: parámetros técnicos de ATR, pendiente RSI, divergencia, EMA200 slope, fuerza, retroceso, SL/TP y S/R avanzado quedan como constantes internas para reducir inputs visibles.
+- Cambio: panel/Data Window muestran modo AUTO, timeframe, EMAs activas y RSI activo; el helper RSI pasa a modo AUTO RSI14 sin preset visible.
+- Validación: `python3 scripts/validar_documentacion_viva.py` y `git diff --check` ejecutados correctamente; compilación real de Pine queda pendiente en TradingView.
+- Evidencia: cambios en `indicador_wyckoff_ema_rsi_v2.pine`, `rsi_panel_wyckoff_helper.pine`, `README.md`, `CHANGELOG.md` y documentación viva; no se tocó `estrategia_wyckoff_ema_rsi_v2.pine`.
+- Pendiente: compilar indicador/helper en TradingView y confirmar selección automática en 15m y 1h sobre `BTCUSDT.P` BingX.
