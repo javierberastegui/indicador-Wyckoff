@@ -1,5 +1,5 @@
 //@version=5
-indicator("Indicador Wyckoff + EMA + RSI v2.5.1", shorttitle="Wyckoff EMA RSI v2", overlay=true, max_labels_count=500, max_lines_count=200)
+indicator("Indicador Wyckoff + EMA + RSI v2.5.2", shorttitle="Wyckoff EMA RSI v2", overlay=true, max_labels_count=500, max_lines_count=200)
 
 // =====================================================
 // Inputs visibles minimos
@@ -27,12 +27,22 @@ mostrarRetrocesos = input.bool(true, "Mostrar retrocesos", group="Visualizacion"
 mostrarTextoDivAbsOverlay = input.bool(false, "Mostrar texto DIV/ABS en overlay", group="Visualizacion")
 mostrarNombreZonaWyckoff = input.bool(true, "Mostrar nombre zona Wyckoff al cambiar", group="Visualizacion")
 
-// Colores EMAs
-colorEmaRapida = input.color(color.green, "EMA rapida", group="Colores EMAs")
-colorEmaMedia = input.color(color.orange, "EMA media", group="Colores EMAs")
-colorEmaLenta = input.color(color.red, "EMA lenta", group="Colores EMAs")
-colorEma50 = input.color(color.yellow, "EMA 50 filtro fuerte", group="Colores EMAs")
-colorEma200 = input.color(color.blue, "EMA 200", group="Colores EMAs")
+// Estilo EMAs
+colorEmaRapida = input.color(color.green, "Color EMA rapida", group="Estilo EMAs")
+colorEmaMedia = input.color(color.orange, "Color EMA media", group="Estilo EMAs")
+colorEmaLenta = input.color(color.red, "Color EMA lenta", group="Estilo EMAs")
+colorEma50 = input.color(color.yellow, "Color EMA 50 filtro fuerte", group="Estilo EMAs")
+colorEma200 = input.color(color.blue, "Color EMA 200", group="Estilo EMAs")
+grosorEmaRapida = input.int(2, "Grosor EMA rapida", minval=1, maxval=5, group="Estilo EMAs")
+grosorEmaMedia = input.int(1, "Grosor EMA media", minval=1, maxval=5, group="Estilo EMAs")
+grosorEmaLenta = input.int(2, "Grosor EMA lenta", minval=1, maxval=5, group="Estilo EMAs")
+grosorEma50 = input.int(2, "Grosor EMA 50", minval=1, maxval=5, group="Estilo EMAs")
+grosorEma200 = input.int(2, "Grosor EMA 200", minval=1, maxval=5, group="Estilo EMAs")
+transpEmaRapida = input.int(0, "Transparencia EMA rapida", minval=0, maxval=100, group="Estilo EMAs")
+transpEmaMedia = input.int(0, "Transparencia EMA media", minval=0, maxval=100, group="Estilo EMAs")
+transpEmaLenta = input.int(0, "Transparencia EMA lenta", minval=0, maxval=100, group="Estilo EMAs")
+transpEma50 = input.int(0, "Transparencia EMA 50", minval=0, maxval=100, group="Estilo EMAs")
+transpEma200 = input.int(0, "Transparencia EMA 200", minval=0, maxval=100, group="Estilo EMAs")
 
 // Soporte / resistencia opcional y limpio
 mostrarSoporteResistencia = input.bool(false, "Mostrar soporte/resistencia", group="Soporte / resistencia")
@@ -277,33 +287,33 @@ fractalSyncInfo = fractalLongOk ? 1 : fractalShortOk ? -1 : 0
 ema50Info = ema50LongOk ? 1 : ema50ShortOk ? -1 : 0
 manosFuertesInfo = manosFuertesLong ? 1 : manosFuertesShort ? -1 : 0
 
-plot(longCandidate ? slLong : na, "SL_LONG", color=color.new(color.red, 100), display=display.data_window)
-plot(longCandidate ? tpLong : na, "TP_LONG", color=color.new(color.green, 100), display=display.data_window)
-plot(shortCandidate ? slShort : na, "SL_SHORT", color=color.new(color.red, 100), display=display.data_window)
-plot(shortCandidate ? tpShort : na, "TP_SHORT", color=color.new(color.green, 100), display=display.data_window)
-plot(longCandidate ? (tendenciaFuerteLong ? 2 : 1) : na, "FUERZA_LONG", color=color.new(color.gray, 100), display=display.data_window)
-plot(shortCandidate ? (tendenciaFuerteShort ? 2 : 1) : na, "FUERZA_SHORT", color=color.new(color.gray, 100), display=display.data_window)
-plot(fractalSyncInfo, "FRACTAL_SYNC", color=color.new(color.gray, 100), display=display.data_window)
-plot(dirW, "FRACTAL_W", color=color.new(color.gray, 100), display=display.data_window)
-plot(dirD, "FRACTAL_D", color=color.new(color.gray, 100), display=display.data_window)
-plot(dirH1, "FRACTAL_1H", color=color.new(color.gray, 100), display=display.data_window)
-plot(ema50Info, "EMA50_FILTER", color=color.new(color.gray, 100), display=display.data_window)
-plot(manosFuertesInfo, "MANOS_FUERTES", color=color.new(color.gray, 100), display=display.data_window)
-plot(rsi, "RSI_INFO", color=color.new(color.purple, 100), display=display.data_window)
-plot(ratioRangoAtr, "RATIO_RANGO_ATR", color=color.new(color.gray, 100), display=display.data_window)
-plot(tfMin, "TF_MIN_AUTO", color=color.new(color.gray, 100), display=display.data_window)
-plot(emaModeInfo, "EMA_MODE_AUTO", color=color.new(color.gray, 100), display=display.data_window)
-plot(rsiLen, "RSI_LEN_AUTO", color=color.new(color.gray, 100), display=display.data_window)
+plot(longCandidate ? slLong : na, "SL_LONG", color=color.new(color.red, 100), display=display.data_window, editable=false)
+plot(longCandidate ? tpLong : na, "TP_LONG", color=color.new(color.green, 100), display=display.data_window, editable=false)
+plot(shortCandidate ? slShort : na, "SL_SHORT", color=color.new(color.red, 100), display=display.data_window, editable=false)
+plot(shortCandidate ? tpShort : na, "TP_SHORT", color=color.new(color.green, 100), display=display.data_window, editable=false)
+plot(longCandidate ? (tendenciaFuerteLong ? 2 : 1) : na, "FUERZA_LONG", color=color.new(color.gray, 100), display=display.data_window, editable=false)
+plot(shortCandidate ? (tendenciaFuerteShort ? 2 : 1) : na, "FUERZA_SHORT", color=color.new(color.gray, 100), display=display.data_window, editable=false)
+plot(fractalSyncInfo, "FRACTAL_SYNC", color=color.new(color.gray, 100), display=display.data_window, editable=false)
+plot(dirW, "FRACTAL_W", color=color.new(color.gray, 100), display=display.data_window, editable=false)
+plot(dirD, "FRACTAL_D", color=color.new(color.gray, 100), display=display.data_window, editable=false)
+plot(dirH1, "FRACTAL_1H", color=color.new(color.gray, 100), display=display.data_window, editable=false)
+plot(ema50Info, "EMA50_FILTER", color=color.new(color.gray, 100), display=display.data_window, editable=false)
+plot(manosFuertesInfo, "MANOS_FUERTES", color=color.new(color.gray, 100), display=display.data_window, editable=false)
+plot(rsi, "RSI_INFO", color=color.new(color.purple, 100), display=display.data_window, editable=false)
+plot(ratioRangoAtr, "RATIO_RANGO_ATR", color=color.new(color.gray, 100), display=display.data_window, editable=false)
+plot(tfMin, "TF_MIN_AUTO", color=color.new(color.gray, 100), display=display.data_window, editable=false)
+plot(emaModeInfo, "EMA_MODE_AUTO", color=color.new(color.gray, 100), display=display.data_window, editable=false)
+plot(rsiLen, "RSI_LEN_AUTO", color=color.new(color.gray, 100), display=display.data_window, editable=false)
 
 // =====================================================
 // Visualizacion: EMAs + cinta de tendencia
 // =====================================================
 
-pFast = plot(emaFast, "EMA rapida", color=colorEmaRapida, linewidth=2)
-plot(emaMode == "5/8/13" ? ema8 : na, "EMA media", color=colorEmaMedia, linewidth=1)
-pSlow = plot(emaSlow, "EMA lenta", color=colorEmaLenta, linewidth=2)
-plot(ema50, "EMA 50 filtro fuerte", color=colorEma50, linewidth=2)
-plot(ema200, "EMA 200", color=colorEma200, linewidth=2)
+pFast = plot(emaFast, "EMA rapida", color=color.new(colorEmaRapida, transpEmaRapida), linewidth=grosorEmaRapida)
+plot(emaMode == "5/8/13" ? ema8 : na, "EMA media", color=color.new(colorEmaMedia, transpEmaMedia), linewidth=grosorEmaMedia)
+pSlow = plot(emaSlow, "EMA lenta", color=color.new(colorEmaLenta, transpEmaLenta), linewidth=grosorEmaLenta)
+plot(ema50, "EMA 50 filtro fuerte", color=color.new(colorEma50, transpEma50), linewidth=grosorEma50)
+plot(ema200, "EMA 200", color=color.new(colorEma200, transpEma200), linewidth=grosorEma200)
 
 // Cinta: verde alcista / rojo bajista; mas opaca = FUERTE, mas tenue = DEBIL
 cintaCol = not mostrarCinta ? na : tendenciaFuerteLong ? color.new(color.green, 75) : tendenciaDebilLong ? color.new(color.green, 90) : tendenciaFuerteShort ? color.new(color.red, 75) : tendenciaDebilShort ? color.new(color.red, 90) : na
