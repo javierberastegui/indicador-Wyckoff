@@ -1,5 +1,18 @@
 # Changelog
 
+## [2.5.3] - 2026-06-22
+
+### Changed
+- Panel operativo simplificado para swing trading: semana como contexto, diario como marco principal y 1H como setup.
+- El panel elimina filas redundantes de RSI y cambia `TF 1440m` por formato legible tipo `1D`.
+- La fila de fases crípticas se sustituye por `Wyckoff` local en lenguaje operativo: acumulación, distribución, impulso alcista, impulso bajista o transición.
+- Añadida fila `Comentario` con lectura accionable: esperar, buscar PB+/LONG, buscar PB-/SHORT, rebote contra diario o falta setup 1H.
+- Por defecto se muestran solo EMA50 y EMA200; EMA rápida/lenta y EMA media quedan desactivadas y se pueden activar desde `Estilo EMAs`.
+
+### Tests
+- Revisión estructural del Pine Script.
+- Compilación real de Pine Script sigue pendiente en TradingView.
+
 ## [2.5.1] - 2026-06-22
 
 ### Added
