@@ -1,5 +1,19 @@
 # Changelog
 
+## [2.5.1] - 2026-06-22
+
+### Added
+- Grupo visible `Colores EMAs` en `indicador_wyckoff_ema_rsi_v2.pine`.
+- Inputs de color para `EMA rapida`, `EMA media`, `EMA lenta`, `EMA 50 filtro fuerte` y `EMA 200`.
+
+### Changed
+- El indicador overlay pasa a título interno `Indicador Wyckoff + EMA + RSI v2.5.1`.
+- Los plots de EMAs usan colores configurables sin cambiar lógica de señales, fractalidad, Wyckoff, EMA50, manos fuertes ni alertas.
+
+### Tests
+- Revisión estructural del Pine Script.
+- Compilación real de Pine Script sigue pendiente en TradingView.
+
 ## [2.5.0] - 2026-06-22
 
 ### Added
