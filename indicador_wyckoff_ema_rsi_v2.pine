@@ -1,5 +1,5 @@
 //@version=5
-indicator("Indicador Wyckoff + EMA + RSI v2.5.2", shorttitle="Wyckoff EMA RSI v2", overlay=true, max_labels_count=500, max_lines_count=200)
+indicator("Indicador Wyckoff + EMA + RSI v2.5.3", shorttitle="Wyckoff EMA RSI v2", overlay=true, max_labels_count=500, max_lines_count=200)
 
 // =====================================================
 // Inputs visibles minimos
@@ -20,7 +20,7 @@ mostrarManosFuertes = input.bool(true, "Mostrar manos fuertes", group="Fractalid
 mostrarDivergencias = input.bool(true, "Mostrar divergencias", group="Visualizacion")
 mostrarAbsorciones = input.bool(true, "Mostrar absorciones", group="Visualizacion")
 mostrarCinta = input.bool(true, "Mostrar cinta de tendencia", group="Visualizacion")
-mostrarPanel = input.bool(true, "Mostrar panel de estado", group="Visualizacion")
+mostrarPanel = input.bool(true, "Mostrar panel swing", group="Visualizacion")
 mostrarCrucesEma = input.bool(true, "Mostrar cruces EMA", group="Visualizacion")
 mostrarZonasWyckoff = input.bool(true, "Mostrar zonas Wyckoff", group="Visualizacion")
 mostrarRetrocesos = input.bool(true, "Mostrar retrocesos", group="Visualizacion")
@@ -28,6 +28,10 @@ mostrarTextoDivAbsOverlay = input.bool(false, "Mostrar texto DIV/ABS en overlay"
 mostrarNombreZonaWyckoff = input.bool(true, "Mostrar nombre zona Wyckoff al cambiar", group="Visualizacion")
 
 // Estilo EMAs
+mostrarEmaOperativa = input.bool(false, "Mostrar EMA rapida/lenta", group="Estilo EMAs")
+mostrarEmaMedia = input.bool(false, "Mostrar EMA media", group="Estilo EMAs")
+mostrarEma50 = input.bool(true, "Mostrar EMA 50", group="Estilo EMAs")
+mostrarEma200 = input.bool(true, "Mostrar EMA 200", group="Estilo EMAs")
 colorEmaRapida = input.color(color.green, "Color EMA rapida", group="Estilo EMAs")
 colorEmaMedia = input.color(color.orange, "Color EMA media", group="Estilo EMAs")
 colorEmaLenta = input.color(color.red, "Color EMA lenta", group="Estilo EMAs")
@@ -160,6 +164,7 @@ esMarkup = not mercadoLateral and trendLong
 esMarkdown = not mercadoLateral and trendShort
 
 fase = esAcumulacion ? "Acumulacion" : esDistribucion ? "Distribucion" : esMarkup ? "Markup" : esMarkdown ? "Markdown" : "Transicion"
+faseOperativa = esAcumulacion ? "Acumulacion" : esDistribucion ? "Distribucion" : esMarkup ? "Impulso alcista" : esMarkdown ? "Impulso bajista" : "Transicion"
 
 rupturaAcumulacion = esMarkup and esAcumulacion[1]
 rupturaDistribucion = esMarkdown and esDistribucion[1]
@@ -189,11 +194,12 @@ f_estadoFractal() =>
     _dir = _trendLong and _ema50Long and _rsiLong and not _mercadoLateral ? 1 : _trendShort and _ema50Short and _rsiShort and not _mercadoLateral ? -1 : 0
     _ema50Dir = _ema50Long ? 1 : _ema50Short ? -1 : 0
     _faseCode = _mercadoLateral and close <= _ema200 ? 1 : _mercadoLateral and close > _ema200 ? 2 : not _mercadoLateral and _trendLong ? 3 : not _mercadoLateral and _trendShort ? -3 : 0
-    [_dir, _ema50Dir, _faseCode, _rsi, _ratioRangoAtr]
+    _sesgo = _trendLong and _ema50Long ? 1 : _trendShort and _ema50Short ? -1 : close > _ema200 ? 2 : close < _ema200 ? -2 : 0
+    [_dir, _ema50Dir, _faseCode, _rsi, _ratioRangoAtr, _sesgo]
 
-[dirW, ema50W, faseW, rsiW, ratioW] = request.security(syminfo.tickerid, "W", f_estadoFractal(), barmerge.gaps_off, barmerge.lookahead_off)
-[dirD, ema50D, faseD, rsiD, ratioD] = request.security(syminfo.tickerid, "D", f_estadoFractal(), barmerge.gaps_off, barmerge.lookahead_off)
-[dirH1, ema50H1, faseH1, rsiH1, ratioH1] = request.security(syminfo.tickerid, "60", f_estadoFractal(), barmerge.gaps_off, barmerge.lookahead_off)
+[dirW, ema50W, faseW, rsiW, ratioW, sesgoW] = request.security(syminfo.tickerid, "W", f_estadoFractal(), barmerge.gaps_off, barmerge.lookahead_off)
+[dirD, ema50D, faseD, rsiD, ratioD, sesgoD] = request.security(syminfo.tickerid, "D", f_estadoFractal(), barmerge.gaps_off, barmerge.lookahead_off)
+[dirH1, ema50H1, faseH1, rsiH1, ratioH1, sesgoH1] = request.security(syminfo.tickerid, "60", f_estadoFractal(), barmerge.gaps_off, barmerge.lookahead_off)
 
 fractalLongOk = dirW == 1 and dirD == 1 and dirH1 == 1
 fractalShortOk = dirW == -1 and dirD == -1 and dirH1 == -1
@@ -202,11 +208,14 @@ fractalDireccion = fractalLongOk ? "SYNC LONG" : fractalShortOk ? "SYNC SHORT" :
 fractalEntradaLongOk = not exigirFractalidadSwing or fractalLongOk
 fractalEntradaShortOk = not exigirFractalidadSwing or fractalShortOk
 
-fmtDir(dir) =>
-    dir == 1 ? "LONG" : dir == -1 ? "SHORT" : "NEUTRO"
+fmtSesgo(sesgo) =>
+    sesgo == 1 ? "ALCISTA" : sesgo == -1 ? "BAJISTA" : sesgo == 2 ? "Alcista flojo" : sesgo == -2 ? "Bajista flojo" : "SIN SESGO"
 
-fmtFase(code) =>
-    code == 1 ? "ACUM" : code == 2 ? "DIST" : code == 3 ? "MARKUP" : code == -3 ? "MARKDOWN" : "TRANS"
+colorSesgo(sesgo) =>
+    sesgo == 1 ? color.new(color.green, 0) : sesgo == -1 ? color.new(color.red, 0) : sesgo == 2 ? color.new(color.green, 55) : sesgo == -2 ? color.new(color.red, 55) : color.new(color.gray, 0)
+
+fmtTf(tfMinActual) =>
+    tfMinActual >= 10080 ? str.tostring(tfMinActual / 10080, "#") + "W" : tfMinActual >= 1440 ? str.tostring(tfMinActual / 1440, "#") + "D" : tfMinActual >= 60 ? str.tostring(tfMinActual / 60, "#") + "H" : str.tostring(tfMinActual, "#") + "m"
 
 // =====================================================
 // Fuerza de tendencia (divergencia = AVISO, no bloqueo)
@@ -309,14 +318,14 @@ plot(rsiLen, "RSI_LEN_AUTO", color=color.new(color.gray, 100), display=display.d
 // Visualizacion: EMAs + cinta de tendencia
 // =====================================================
 
-pFast = plot(emaFast, "EMA rapida", color=color.new(colorEmaRapida, transpEmaRapida), linewidth=grosorEmaRapida)
-plot(emaMode == "5/8/13" ? ema8 : na, "EMA media", color=color.new(colorEmaMedia, transpEmaMedia), linewidth=grosorEmaMedia)
-pSlow = plot(emaSlow, "EMA lenta", color=color.new(colorEmaLenta, transpEmaLenta), linewidth=grosorEmaLenta)
-plot(ema50, "EMA 50 filtro fuerte", color=color.new(colorEma50, transpEma50), linewidth=grosorEma50)
-plot(ema200, "EMA 200", color=color.new(colorEma200, transpEma200), linewidth=grosorEma200)
+pFast = plot(mostrarEmaOperativa ? emaFast : na, "EMA rapida", color=color.new(colorEmaRapida, transpEmaRapida), linewidth=grosorEmaRapida)
+plot(mostrarEmaMedia and emaMode == "5/8/13" ? ema8 : na, "EMA media", color=color.new(colorEmaMedia, transpEmaMedia), linewidth=grosorEmaMedia)
+pSlow = plot(mostrarEmaOperativa ? emaSlow : na, "EMA lenta", color=color.new(colorEmaLenta, transpEmaLenta), linewidth=grosorEmaLenta)
+plot(mostrarEma50 ? ema50 : na, "EMA 50 filtro fuerte", color=color.new(colorEma50, transpEma50), linewidth=grosorEma50)
+plot(mostrarEma200 ? ema200 : na, "EMA 200", color=color.new(colorEma200, transpEma200), linewidth=grosorEma200)
 
 // Cinta: verde alcista / rojo bajista; mas opaca = FUERTE, mas tenue = DEBIL
-cintaCol = not mostrarCinta ? na : tendenciaFuerteLong ? color.new(color.green, 75) : tendenciaDebilLong ? color.new(color.green, 90) : tendenciaFuerteShort ? color.new(color.red, 75) : tendenciaDebilShort ? color.new(color.red, 90) : na
+cintaCol = not mostrarCinta or not mostrarEmaOperativa ? na : tendenciaFuerteLong ? color.new(color.green, 75) : tendenciaDebilLong ? color.new(color.green, 90) : tendenciaFuerteShort ? color.new(color.red, 75) : tendenciaDebilShort ? color.new(color.red, 90) : na
 fill(pFast, pSlow, color=cintaCol, title="Cinta de tendencia")
 
 zonaWyckoffCol = not mostrarZonasWyckoff ? na : esAcumulacion ? color.new(color.teal, 92) : esDistribucion ? color.new(color.orange, 92) : esMarkup ? color.new(color.green, 95) : esMarkdown ? color.new(color.red, 95) : na
@@ -422,42 +431,35 @@ if modoDetallado and shortCandidate
     label.new(bar_index, high, "SHORT " + (tendenciaFuerteShort ? "FUERTE" : "DEBIL") + " (" + rrShort + ")\nFractal: " + fractalDireccion + "\nFase: " + fase + "\nSL: " + str.tostring(slShort, "#.##") + "  TP: " + str.tostring(tpShort, "#.##"), style=label.style_label_down, textcolor=color.white, color=color.new(color.red, 0), size=size.small)
 
 // =====================================================
-// Panel de estado (tendencia clara para el operador)
+// Panel swing operativo
 // =====================================================
 
-var table panel = table.new(position.top_right, 2, 12, border_width=1, frame_color=color.new(color.gray, 50), frame_width=1)
+var table panel = table.new(position.top_right, 2, 8, border_width=1, frame_color=color.new(color.gray, 50), frame_width=1)
 
-dirCol = estructuraLong ? color.new(color.green, 0) : estructuraShort ? color.new(color.red, 0) : color.new(color.gray, 0)
-fuerzaCol = fuerza == "FUERTE" ? color.new(color.green, 0) : fuerza == "DEBIL" ? color.new(color.orange, 0) : color.new(color.gray, 0)
-fractalCol = fractalLongOk ? color.new(color.green, 0) : fractalShortOk ? color.new(color.red, 0) : color.new(color.gray, 0)
+planTxt = fractalLongOk ? "BUSCAR LONG 1H" : fractalShortOk ? "BUSCAR SHORT 1H" : "ESPERAR"
+planCol = fractalLongOk ? color.new(color.green, 0) : fractalShortOk ? color.new(color.red, 0) : color.new(color.orange, 0)
+ema50Txt = ema50LongOk ? "ALCISTA" : ema50ShortOk ? "BAJISTA" : "NEUTRA"
 ema50Col = ema50LongOk ? color.new(color.green, 0) : ema50ShortOk ? color.new(color.red, 0) : color.new(color.gray, 0)
-mfCol = manosFuertesLong ? color.new(color.aqua, 0) : manosFuertesShort ? color.new(color.fuchsia, 0) : color.new(color.gray, 0)
+comentarioSwing = fractalLongOk ? "Alineado: buscar PB+/LONG" : fractalShortOk ? "Alineado: buscar PB-/SHORT" : sesgoD < 0 and sesgoH1 > 0 ? "Rebote 1H contra diario bajista" : sesgoD > 0 and sesgoH1 < 0 ? "Retroceso 1H contra diario alcista" : sesgoW < 0 and sesgoD < 0 ? "Falta setup 1H bajista" : sesgoW > 0 and sesgoD > 0 ? "Falta setup 1H alcista" : "Sin sincronia: no forzar"
+comentarioCol = fractalLongOk ? color.new(color.green, 0) : fractalShortOk ? color.new(color.red, 0) : color.new(color.gray, 0)
 
 if mostrarPanel and barstate.islast
-    table.cell(panel, 0, 0, "ESTADO", text_color=color.white, bgcolor=color.new(color.blue, 0), text_size=size.small)
-    table.cell(panel, 1, 0, "AUTO SWING", text_color=color.white, bgcolor=color.new(color.blue, 0), text_size=size.small)
-    table.cell(panel, 0, 1, "TF", text_color=color.white, bgcolor=color.new(color.black, 30), text_size=size.small)
-    table.cell(panel, 1, 1, str.tostring(tfMin, "#.##") + "m", text_color=color.white, bgcolor=color.new(color.black, 30), text_size=size.small)
-    table.cell(panel, 0, 2, "EMAs", text_color=color.white, bgcolor=color.new(color.black, 30), text_size=size.small)
-    table.cell(panel, 1, 2, emaMode + " + 50/200", text_color=color.white, bgcolor=color.new(color.black, 30), text_size=size.small)
-    table.cell(panel, 0, 3, "RSI activo", text_color=color.white, bgcolor=color.new(color.black, 30), text_size=size.small)
-    table.cell(panel, 1, 3, str.tostring(rsiLen), text_color=color.white, bgcolor=color.new(color.black, 30), text_size=size.small)
-    table.cell(panel, 0, 4, "Tendencia", text_color=color.white, bgcolor=color.new(color.black, 30), text_size=size.small)
-    table.cell(panel, 1, 4, direccion, text_color=color.white, bgcolor=dirCol, text_size=size.small)
-    table.cell(panel, 0, 5, "Fuerza", text_color=color.white, bgcolor=color.new(color.black, 30), text_size=size.small)
-    table.cell(panel, 1, 5, fuerza + (fuerza == "FUERTE" ? "  2x4" : fuerza == "DEBIL" ? "  1x2" : ""), text_color=color.white, bgcolor=fuerzaCol, text_size=size.small)
-    table.cell(panel, 0, 6, "Fractal W/D/1H", text_color=color.white, bgcolor=color.new(color.black, 30), text_size=size.small)
-    table.cell(panel, 1, 6, fractalDireccion, text_color=color.white, bgcolor=fractalCol, text_size=size.small)
-    table.cell(panel, 0, 7, "W / D / 1H", text_color=color.white, bgcolor=color.new(color.black, 30), text_size=size.small)
-    table.cell(panel, 1, 7, fmtDir(dirW) + " / " + fmtDir(dirD) + " / " + fmtDir(dirH1), text_color=color.white, bgcolor=color.new(color.black, 30), text_size=size.small)
-    table.cell(panel, 0, 8, "EMA50", text_color=color.white, bgcolor=color.new(color.black, 30), text_size=size.small)
-    table.cell(panel, 1, 8, ema50LongOk ? "ALCISTA" : ema50ShortOk ? "BAJISTA" : "NEUTRA", text_color=color.white, bgcolor=ema50Col, text_size=size.small)
-    table.cell(panel, 0, 9, "Manos fuertes", text_color=color.white, bgcolor=color.new(color.black, 30), text_size=size.small)
-    table.cell(panel, 1, 9, manosFuertesLong ? "MF+" : manosFuertesShort ? "MF-" : "-", text_color=color.white, bgcolor=mfCol, text_size=size.small)
-    table.cell(panel, 0, 10, "Fase", text_color=color.white, bgcolor=color.new(color.black, 30), text_size=size.small)
-    table.cell(panel, 1, 10, fase + " | " + fmtFase(faseW) + "/" + fmtFase(faseD) + "/" + fmtFase(faseH1), text_color=color.white, bgcolor=color.new(color.black, 30), text_size=size.small)
-    table.cell(panel, 0, 11, "RSI", text_color=color.white, bgcolor=color.new(color.black, 30), text_size=size.small)
-    table.cell(panel, 1, 11, str.tostring(rsi, "#.##"), text_color=color.white, bgcolor=color.new(color.black, 30), text_size=size.small)
+    table.cell(panel, 0, 0, "SWING", text_color=color.white, bgcolor=color.new(color.blue, 0), text_size=size.small)
+    table.cell(panel, 1, 0, fmtTf(tfMin) + " | W contexto | 1H setup", text_color=color.white, bgcolor=color.new(color.blue, 0), text_size=size.small)
+    table.cell(panel, 0, 1, "Plan", text_color=color.white, bgcolor=color.new(color.black, 30), text_size=size.small)
+    table.cell(panel, 1, 1, planTxt, text_color=color.white, bgcolor=planCol, text_size=size.small)
+    table.cell(panel, 0, 2, "Semana", text_color=color.white, bgcolor=color.new(color.black, 30), text_size=size.small)
+    table.cell(panel, 1, 2, fmtSesgo(sesgoW), text_color=color.white, bgcolor=colorSesgo(sesgoW), text_size=size.small)
+    table.cell(panel, 0, 3, "Diario", text_color=color.white, bgcolor=color.new(color.black, 30), text_size=size.small)
+    table.cell(panel, 1, 3, fmtSesgo(sesgoD), text_color=color.white, bgcolor=colorSesgo(sesgoD), text_size=size.small)
+    table.cell(panel, 0, 4, "1H setup", text_color=color.white, bgcolor=color.new(color.black, 30), text_size=size.small)
+    table.cell(panel, 1, 4, fmtSesgo(sesgoH1), text_color=color.white, bgcolor=colorSesgo(sesgoH1), text_size=size.small)
+    table.cell(panel, 0, 5, "Wyckoff", text_color=color.white, bgcolor=color.new(color.black, 30), text_size=size.small)
+    table.cell(panel, 1, 5, faseOperativa, text_color=color.white, bgcolor=color.new(color.black, 30), text_size=size.small)
+    table.cell(panel, 0, 6, "EMA50", text_color=color.white, bgcolor=color.new(color.black, 30), text_size=size.small)
+    table.cell(panel, 1, 6, ema50Txt, text_color=color.white, bgcolor=ema50Col, text_size=size.small)
+    table.cell(panel, 0, 7, "Comentario", text_color=color.white, bgcolor=color.new(color.black, 30), text_size=size.small)
+    table.cell(panel, 1, 7, comentarioSwing, text_color=color.white, bgcolor=comentarioCol, text_size=size.small)
 
 // =====================================================
 // Alertas JSON para webhook
