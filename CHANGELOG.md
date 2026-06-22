@@ -1,5 +1,26 @@
 # Changelog
 
+## [2.5.0] - 2026-06-22
+
+### Added
+- Capa de fractalidad swing en `indicador_wyckoff_ema_rsi_v2.pine` con sincronía fija semanal (`W`), diario (`D`) y 1h (`60`) usando `request.security()`.
+- Input `exigirFractalidadSwing=true` para bloquear señales LONG/SHORT mientras W/D/1H no estén sincronizados.
+- EMA50 como filtro fuerte obligatorio para señales: precio y pendiente deben estar alineados a favor.
+- Lectura visual de manos fuertes con marcadores `MF+`/`MF-` basada en absorción, barrida, volumen y esfuerzo/resultado.
+- Panel ampliado con `Fractal W/D/1H`, dirección W/D/1H, EMA50, manos fuertes y fases locales/MTF.
+- Data Window con `FRACTAL_SYNC`, `FRACTAL_W`, `FRACTAL_D`, `FRACTAL_1H`, `EMA50_FILTER` y `MANOS_FUERTES`.
+
+### Changed
+- Las señales candidatas pasan a exigir estructura EMA200 + EMA50 y sincronía fractal cuando el filtro swing está activo.
+- La tendencia fuerte ahora requiere EMA50 alineada y fractalidad sincronizada si `exigirFractalidadSwing` está activo.
+- Las alertas JSON siguen centralizadas en `alertcondition()`, pero añaden campos de fractalidad, EMA50, manos fuertes y `reason`.
+- No se tocó `estrategia_wyckoff_ema_rsi_v2.pine`; queda pendiente adaptar la estrategia si se quiere backtest exacto de la puerta fractal.
+
+### Tests
+- Revisión estructural del Pine Script y documentación viva actualizada.
+- Compilación real de Pine Script sigue pendiente en TradingView.
+- Validación documental local no ejecutada desde este entorno; debe ejecutarse `python3 scripts/validar_documentacion_viva.py` en clon local.
+
 ## [2.4.0] - 2026-06-02
 
 ### Added
