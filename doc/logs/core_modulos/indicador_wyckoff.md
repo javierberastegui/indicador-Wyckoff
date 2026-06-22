@@ -72,3 +72,14 @@
 - Validación: revisión estructural aplicada; compilación real Pine y validación documental local quedan pendientes en entorno del repo.
 - Evidencia: cambios en `indicador_wyckoff_ema_rsi_v2.pine`, `README.md`, `CHANGELOG.md`, `doc/estado_actual.md` y logs/relevos por dominio.
 - Pendiente: compilar indicador en TradingView, revisar `BTCUSDT.P` BingX semanal/diario/1h, crear alerta real y decidir si se adapta la estrategia a la puerta fractal para backtest exacto.
+
+### 2026-06-22 — v2.5.3 panel swing operativo
+- Dominio: `core_indicador`, `tradingview`, `senales`, `documentacion`.
+- Cambio: panel reducido a lectura operativa: plan, semana, diario, 1H setup, Wyckoff local, EMA50 y comentario.
+- Cambio: el timeframe se muestra como `1D`, `1H`, `1W` en vez de minutos crudos como `1440m`.
+- Cambio: se elimina ruido de doble RSI y fases MTF crípticas; la fase local se traduce a acumulación, distribución, impulso alcista, impulso bajista o transición.
+- Cambio: por defecto solo se muestran EMA50 y EMA200; EMA rápida/lenta y EMA media quedan ocultas pero activables desde `Estilo EMAs`.
+- Cambio: añadido comentario operativo para respetar el flujo swing: semana contexto, diario operativa principal y 1H setup.
+- Validación: revisión estructural aplicada; compilación real Pine queda pendiente en TradingView.
+- Evidencia: cambios en `indicador_wyckoff_ema_rsi_v2.pine` y `CHANGELOG.md`.
+- Pendiente: compilar en TradingView y revisar visualmente el panel en BTCUSDT.P diario, semanal y 1H.
