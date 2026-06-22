@@ -1,5 +1,5 @@
 //@version=5
-indicator("Indicador Wyckoff + EMA + RSI v2.4.0", shorttitle="Wyckoff EMA RSI v2", overlay=true, max_labels_count=500, max_lines_count=200)
+indicator("Indicador Wyckoff + EMA + RSI v2.5.0", shorttitle="Wyckoff EMA RSI v2", overlay=true, max_labels_count=500, max_lines_count=200)
 
 // =====================================================
 // Inputs visibles minimos
@@ -9,6 +9,12 @@ indicator("Indicador Wyckoff + EMA + RSI v2.4.0", shorttitle="Wyckoff EMA RSI v2
 usarVolumen = input.bool(false, "Activar confirmacion por volumen", group="Filtros opcionales")
 volLen = input.int(20, "Media volumen", minval=1, group="Filtros opcionales")
 exigirAbsorcion = input.bool(false, "Exigir absorcion/divergencia favorable", group="Filtros opcionales")
+exigirManosFuertes = input.bool(false, "Exigir manos fuertes/absorcion", group="Filtros opcionales")
+
+// Fractalidad swing
+exigirFractalidadSwing = input.bool(true, "Exigir sincronia semanal/diario/1h", group="Fractalidad swing")
+mostrarFractalidadSwing = input.bool(true, "Mostrar sincronia W/D/1h", group="Fractalidad swing")
+mostrarManosFuertes = input.bool(true, "Mostrar manos fuertes", group="Fractalidad swing")
 
 // Visualizacion
 mostrarDivergencias = input.bool(true, "Mostrar divergencias", group="Visualizacion")
@@ -29,6 +35,7 @@ mostrarSoporteResistencia = input.bool(false, "Mostrar soporte/resistencia", gro
 // =====================================================
 
 ema200SlopeLookback = 10
+ema50SlopeLookback = 5
 slopeLookback = 3
 atrLen = 14
 divLookback = 8
@@ -46,6 +53,10 @@ maxLineasSR = 4
 distanciaMinimaSrAtr = 0.8
 mostrarSoloSrCercano = true
 distanciaSrVisibleAtr = 8.0
+fractalLateralLookback = 24
+ratioLateralFractalMax = 5.5
+volClimaxMult = 1.5
+rangoCompresionAtr = 0.9
 
 // =====================================================
 // Modo automatico por timeframe
@@ -57,6 +68,7 @@ int rsiLen = 14
 int lateralLookback = tfMin <= 15 ? 18 : 24
 float ratioLateralMax = tfMin <= 15 ? 4.5 : 5.5
 emaModeInfo = emaMode == "9/21" ? 921 : 1020
+
 // =====================================================
 // Calculos base
 // =====================================================
@@ -68,6 +80,7 @@ ema10 = ta.ema(close, 10)
 ema13 = ta.ema(close, 13)
 ema20 = ta.ema(close, 20)
 ema21 = ta.ema(close, 21)
+ema50 = ta.ema(close, 50)
 ema200 = ta.ema(close, 200)
 
 emaFast = emaMode == "9/21" ? ema9 : emaMode == "10/20" ? ema10 : ema5
@@ -86,8 +99,13 @@ ratioRangoAtr = atr > 0 ? rangoN / atr : na
 mercadoLateral = ratioRangoAtr <= ratioLateralMax
 
 ema200Slope = ema200 - ema200[ema200SlopeLookback]
+ema50Slope = ema50 - ema50[ema50SlopeLookback]
 trendLong = close > ema200 and ema200Slope > 0
 trendShort = close < ema200 and ema200Slope < 0
+ema50LongOk = close > ema50 and ema50Slope > 0
+ema50ShortOk = close < ema50 and ema50Slope < 0
+estructuraLong = trendLong and ema50LongOk
+estructuraShort = trendShort and ema50ShortOk
 
 precioNuevoMin = low < ta.lowest(low[1], divLookback)
 precioNuevoMax = high > ta.highest(high[1], divLookback)
@@ -100,6 +118,20 @@ divBear = precioNuevoMax and rsi < rsiMaxPrev
 velaMitad = low + (high - low) * 0.5
 absorcionBull = precioNuevoMin and rsi > rsiMinPrev and close > velaMitad
 absorcionBear = precioNuevoMax and rsi < rsiMaxPrev and close < velaMitad
+
+// =====================================================
+// Manos fuertes: esfuerzo vs resultado + barridas/absorcion
+// =====================================================
+
+rangoVela = math.max(high - low, syminfo.mintick)
+posicionCierre = (close - low) / rangoVela
+volClimax = volume > volBase * volClimaxMult
+rangoComprimido = rangoVela <= atr * rangoCompresionAtr
+rechazoBajo = precioNuevoMin and close > velaMitad and posicionCierre >= 0.60
+rechazoAlto = precioNuevoMax and close < velaMitad and posicionCierre <= 0.40
+
+manosFuertesLong = absorcionBull or (volClimax and rechazoBajo) or (volClimax and rangoComprimido and close > open and posicionCierre >= 0.65)
+manosFuertesShort = absorcionBear or (volClimax and rechazoAlto) or (volClimax and rangoComprimido and close < open and posicionCierre <= 0.35)
 
 // =====================================================
 // Fases Wyckoff simplificadas
@@ -116,6 +148,50 @@ rupturaAcumulacion = esMarkup and esAcumulacion[1]
 rupturaDistribucion = esMarkdown and esDistribucion[1]
 
 // =====================================================
+// Fractalidad swing W/D/1H
+// =====================================================
+
+f_estadoFractal() =>
+    _ema50 = ta.ema(close, 50)
+    _ema200 = ta.ema(close, 200)
+    _ema50Slope = _ema50 - _ema50[ema50SlopeLookback]
+    _ema200Slope = _ema200 - _ema200[ema200SlopeLookback]
+    _rsi = ta.rsi(close, rsiLen)
+    _rsiSlope = _rsi - _rsi[slopeLookback]
+    _atr = ta.atr(atrLen)
+    _rangoMax = ta.highest(high, fractalLateralLookback)
+    _rangoMin = ta.lowest(low, fractalLateralLookback)
+    _ratioRangoAtr = _atr > 0 ? (_rangoMax - _rangoMin) / _atr : na
+    _mercadoLateral = _ratioRangoAtr <= ratioLateralFractalMax
+    _trendLong = close > _ema200 and _ema200Slope > 0
+    _trendShort = close < _ema200 and _ema200Slope < 0
+    _ema50Long = close > _ema50 and _ema50Slope > 0
+    _ema50Short = close < _ema50 and _ema50Slope < 0
+    _rsiLong = _rsi > 50 and _rsiSlope > 0
+    _rsiShort = _rsi < 50 and _rsiSlope < 0
+    _dir = _trendLong and _ema50Long and _rsiLong and not _mercadoLateral ? 1 : _trendShort and _ema50Short and _rsiShort and not _mercadoLateral ? -1 : 0
+    _ema50Dir = _ema50Long ? 1 : _ema50Short ? -1 : 0
+    _faseCode = _mercadoLateral and close <= _ema200 ? 1 : _mercadoLateral and close > _ema200 ? 2 : not _mercadoLateral and _trendLong ? 3 : not _mercadoLateral and _trendShort ? -3 : 0
+    [_dir, _ema50Dir, _faseCode, _rsi, _ratioRangoAtr]
+
+[dirW, ema50W, faseW, rsiW, ratioW] = request.security(syminfo.tickerid, "W", f_estadoFractal(), barmerge.gaps_off, barmerge.lookahead_off)
+[dirD, ema50D, faseD, rsiD, ratioD] = request.security(syminfo.tickerid, "D", f_estadoFractal(), barmerge.gaps_off, barmerge.lookahead_off)
+[dirH1, ema50H1, faseH1, rsiH1, ratioH1] = request.security(syminfo.tickerid, "60", f_estadoFractal(), barmerge.gaps_off, barmerge.lookahead_off)
+
+fractalLongOk = dirW == 1 and dirD == 1 and dirH1 == 1
+fractalShortOk = dirW == -1 and dirD == -1 and dirH1 == -1
+fractalNeutro = not fractalLongOk and not fractalShortOk
+fractalDireccion = fractalLongOk ? "SYNC LONG" : fractalShortOk ? "SYNC SHORT" : "NO SYNC"
+fractalEntradaLongOk = not exigirFractalidadSwing or fractalLongOk
+fractalEntradaShortOk = not exigirFractalidadSwing or fractalShortOk
+
+fmtDir(dir) =>
+    dir == 1 ? "LONG" : dir == -1 ? "SHORT" : "NEUTRO"
+
+fmtFase(code) =>
+    code == 1 ? "ACUM" : code == 2 ? "DIST" : code == 3 ? "MARKUP" : code == -3 ? "MARKDOWN" : "TRANS"
+
+// =====================================================
 // Fuerza de tendencia (divergencia = AVISO, no bloqueo)
 // =====================================================
 
@@ -129,13 +205,13 @@ bsDivBull = ta.barssince(divBull)
 avisoContraLong = not na(bsDivBear) and bsDivBear <= avisoLookback
 avisoContraShort = not na(bsDivBull) and bsDivBull <= avisoLookback
 
-// Tendencia fuerte = direccion clara + EMAs separadas + sin aviso contrario
-tendenciaFuerteLong = trendLong and emaSeparadas and not avisoContraLong
-tendenciaFuerteShort = trendShort and emaSeparadas and not avisoContraShort
-tendenciaDebilLong = trendLong and not tendenciaFuerteLong
-tendenciaDebilShort = trendShort and not tendenciaFuerteShort
+// Tendencia fuerte = direccion clara + EMA50 + EMAs separadas + sin aviso contrario + fractalidad sincronizada si se exige
+tendenciaFuerteLong = estructuraLong and emaSeparadas and not avisoContraLong and fractalEntradaLongOk
+tendenciaFuerteShort = estructuraShort and emaSeparadas and not avisoContraShort and fractalEntradaShortOk
+tendenciaDebilLong = estructuraLong and not tendenciaFuerteLong
+tendenciaDebilShort = estructuraShort and not tendenciaFuerteShort
 
-direccion = trendLong ? "ALCISTA" : trendShort ? "BAJISTA" : "SIN TENDENCIA"
+direccion = estructuraLong ? "ALCISTA" : estructuraShort ? "BAJISTA" : "SIN TENDENCIA"
 fuerza = (tendenciaFuerteLong or tendenciaFuerteShort) ? "FUERTE" : (tendenciaDebilLong or tendenciaDebilShort) ? "DEBIL" : "-"
 
 // =====================================================
@@ -149,8 +225,8 @@ cruceLong = emaMode == "5/8/13" ? (alineacionLongTriple and not alineacionLongTr
 cruceShort = emaMode == "5/8/13" ? (alineacionShortTriple and not alineacionShortTriple[1]) : ta.crossunder(emaFast, emaSlow)
 
 // Retroceso: el precio toca la EMA rapida y rebota en la direccion de la tendencia
-pullbackLong = trendLong and low <= emaFast and close > emaFast and close > open
-pullbackShort = trendShort and high >= emaFast and close < emaFast and close < open
+pullbackLong = estructuraLong and low <= emaFast and close > emaFast and close > open
+pullbackShort = estructuraShort and high >= emaFast and close < emaFast and close < open
 
 disparoLong = cruceLong or (usarRetroceso and pullbackLong)
 disparoShort = cruceShort or (usarRetroceso and pullbackShort)
@@ -167,9 +243,11 @@ wyckoffShortOk = esMarkdown or rupturaDistribucion
 
 estructuraLongOk = not exigirAbsorcion or divBull or absorcionBull
 estructuraShortOk = not exigirAbsorcion or divBear or absorcionBear
+manosFuertesLongOk = not exigirManosFuertes or manosFuertesLong
+manosFuertesShortOk = not exigirManosFuertes or manosFuertesShort
 
-longCandidate = barstate.isconfirmed and disparoLong and trendLong and rsiLongOk and wyckoffLongOk and not mercadoLateral and volOk and estructuraLongOk
-shortCandidate = barstate.isconfirmed and disparoShort and trendShort and rsiShortOk and wyckoffShortOk and not mercadoLateral and volOk and estructuraShortOk
+longCandidate = barstate.isconfirmed and disparoLong and estructuraLong and rsiLongOk and wyckoffLongOk and fractalEntradaLongOk and not mercadoLateral and volOk and estructuraLongOk and manosFuertesLongOk
+shortCandidate = barstate.isconfirmed and disparoShort and estructuraShort and rsiShortOk and wyckoffShortOk and fractalEntradaShortOk and not mercadoLateral and volOk and estructuraShortOk and manosFuertesShortOk
 
 // =====================================================
 // Gestion sugerida de riesgo (dinamica segun fuerza)
@@ -188,12 +266,22 @@ tpShort = close - atr * tpMultShort
 rrLong = tendenciaFuerteLong ? "2x4" : "1x2"
 rrShort = tendenciaFuerteShort ? "2x4" : "1x2"
 
+fractalSyncInfo = fractalLongOk ? 1 : fractalShortOk ? -1 : 0
+ema50Info = ema50LongOk ? 1 : ema50ShortOk ? -1 : 0
+manosFuertesInfo = manosFuertesLong ? 1 : manosFuertesShort ? -1 : 0
+
 plot(longCandidate ? slLong : na, "SL_LONG", color=color.new(color.red, 100), display=display.data_window)
 plot(longCandidate ? tpLong : na, "TP_LONG", color=color.new(color.green, 100), display=display.data_window)
 plot(shortCandidate ? slShort : na, "SL_SHORT", color=color.new(color.red, 100), display=display.data_window)
 plot(shortCandidate ? tpShort : na, "TP_SHORT", color=color.new(color.green, 100), display=display.data_window)
 plot(longCandidate ? (tendenciaFuerteLong ? 2 : 1) : na, "FUERZA_LONG", color=color.new(color.gray, 100), display=display.data_window)
 plot(shortCandidate ? (tendenciaFuerteShort ? 2 : 1) : na, "FUERZA_SHORT", color=color.new(color.gray, 100), display=display.data_window)
+plot(fractalSyncInfo, "FRACTAL_SYNC", color=color.new(color.gray, 100), display=display.data_window)
+plot(dirW, "FRACTAL_W", color=color.new(color.gray, 100), display=display.data_window)
+plot(dirD, "FRACTAL_D", color=color.new(color.gray, 100), display=display.data_window)
+plot(dirH1, "FRACTAL_1H", color=color.new(color.gray, 100), display=display.data_window)
+plot(ema50Info, "EMA50_FILTER", color=color.new(color.gray, 100), display=display.data_window)
+plot(manosFuertesInfo, "MANOS_FUERTES", color=color.new(color.gray, 100), display=display.data_window)
 plot(rsi, "RSI_INFO", color=color.new(color.purple, 100), display=display.data_window)
 plot(ratioRangoAtr, "RATIO_RANGO_ATR", color=color.new(color.gray, 100), display=display.data_window)
 plot(tfMin, "TF_MIN_AUTO", color=color.new(color.gray, 100), display=display.data_window)
@@ -207,6 +295,7 @@ plot(rsiLen, "RSI_LEN_AUTO", color=color.new(color.gray, 100), display=display.d
 pFast = plot(emaFast, "EMA rapida", color=color.new(color.green, 0), linewidth=2)
 plot(emaMode == "5/8/13" ? ema8 : na, "EMA media", color=color.new(color.orange, 0), linewidth=1)
 pSlow = plot(emaSlow, "EMA lenta", color=color.new(color.red, 0), linewidth=2)
+plot(ema50, "EMA 50 filtro fuerte", color=color.new(color.yellow, 0), linewidth=2)
 plot(ema200, "EMA 200", color=color.new(color.blue, 0), linewidth=2)
 
 // Cinta: verde alcista / rojo bajista; mas opaca = FUERTE, mas tenue = DEBIL
@@ -294,6 +383,12 @@ plotshape(mostrarCrucesEma and cruceShort, title="Cruce EMA bajista", style=shap
 plotshape(mostrarRetrocesos and pullbackLong, title="Retroceso alcista", style=shape.circle, location=location.belowbar, color=color.new(color.green, 15), text="PB+", textcolor=color.white, size=size.tiny)
 plotshape(mostrarRetrocesos and pullbackShort, title="Retroceso bajista", style=shape.circle, location=location.abovebar, color=color.new(color.red, 15), text="PB-", textcolor=color.white, size=size.tiny)
 
+plotshape(mostrarFractalidadSwing and fractalLongOk and not fractalLongOk[1], title="Sincronia fractal alcista W/D/1H", style=shape.flag, location=location.belowbar, color=color.new(color.green, 0), text="SYNC+", textcolor=color.white, size=size.small)
+plotshape(mostrarFractalidadSwing and fractalShortOk and not fractalShortOk[1], title="Sincronia fractal bajista W/D/1H", style=shape.flag, location=location.abovebar, color=color.new(color.red, 0), text="SYNC-", textcolor=color.white, size=size.small)
+
+plotshape(mostrarManosFuertes and manosFuertesLong, title="Manos fuertes alcistas", style=shape.square, location=location.belowbar, color=color.new(color.aqua, 0), text="MF+", textcolor=color.white, size=size.tiny)
+plotshape(mostrarManosFuertes and manosFuertesShort, title="Manos fuertes bajistas", style=shape.square, location=location.abovebar, color=color.new(color.fuchsia, 0), text="MF-", textcolor=color.white, size=size.tiny)
+
 plotshape(mostrarDivergencias and divBull and not mostrarTextoDivAbsOverlay ? low - atr * 0.45 : na, title="Divergencia alcista", style=shape.triangleup, location=location.absolute, color=color.new(color.green, 15), size=size.tiny)
 plotshape(mostrarDivergencias and divBear and not mostrarTextoDivAbsOverlay ? high + atr * 0.45 : na, title="Divergencia bajista", style=shape.triangledown, location=location.absolute, color=color.new(color.red, 15), size=size.tiny)
 plotshape(mostrarAbsorciones and absorcionBull and not mostrarTextoDivAbsOverlay ? low - atr * 0.75 : na, title="Absorcion alcista", style=shape.circle, location=location.absolute, color=color.new(color.aqua, 15), size=size.tiny)
@@ -304,41 +399,52 @@ plotshape(mostrarAbsorciones and absorcionBull and mostrarTextoDivAbsOverlay ? l
 plotshape(mostrarAbsorciones and absorcionBear and mostrarTextoDivAbsOverlay ? high + atr * 0.75 : na, title="Absorcion bajista texto", style=shape.circle, location=location.absolute, color=color.new(color.fuchsia, 15), text="ABS-", textcolor=color.white, size=size.tiny)
 
 if modoDetallado and longCandidate
-    label.new(bar_index, low, "LONG " + (tendenciaFuerteLong ? "FUERTE" : "DEBIL") + " (" + rrLong + ")\nFase: " + fase + "\nSL: " + str.tostring(slLong, "#.##") + "  TP: " + str.tostring(tpLong, "#.##"), style=label.style_label_up, textcolor=color.white, color=color.new(color.green, 0), size=size.small)
+    label.new(bar_index, low, "LONG " + (tendenciaFuerteLong ? "FUERTE" : "DEBIL") + " (" + rrLong + ")\nFractal: " + fractalDireccion + "\nFase: " + fase + "\nSL: " + str.tostring(slLong, "#.##") + "  TP: " + str.tostring(tpLong, "#.##"), style=label.style_label_up, textcolor=color.white, color=color.new(color.green, 0), size=size.small)
 
 if modoDetallado and shortCandidate
-    label.new(bar_index, high, "SHORT " + (tendenciaFuerteShort ? "FUERTE" : "DEBIL") + " (" + rrShort + ")\nFase: " + fase + "\nSL: " + str.tostring(slShort, "#.##") + "  TP: " + str.tostring(tpShort, "#.##"), style=label.style_label_down, textcolor=color.white, color=color.new(color.red, 0), size=size.small)
+    label.new(bar_index, high, "SHORT " + (tendenciaFuerteShort ? "FUERTE" : "DEBIL") + " (" + rrShort + ")\nFractal: " + fractalDireccion + "\nFase: " + fase + "\nSL: " + str.tostring(slShort, "#.##") + "  TP: " + str.tostring(tpShort, "#.##"), style=label.style_label_down, textcolor=color.white, color=color.new(color.red, 0), size=size.small)
 
 // =====================================================
 // Panel de estado (tendencia clara para el operador)
 // =====================================================
 
-var table panel = table.new(position.top_right, 2, 8, border_width=1, frame_color=color.new(color.gray, 50), frame_width=1)
+var table panel = table.new(position.top_right, 2, 12, border_width=1, frame_color=color.new(color.gray, 50), frame_width=1)
 
-dirCol = trendLong ? color.new(color.green, 0) : trendShort ? color.new(color.red, 0) : color.new(color.gray, 0)
+dirCol = estructuraLong ? color.new(color.green, 0) : estructuraShort ? color.new(color.red, 0) : color.new(color.gray, 0)
 fuerzaCol = fuerza == "FUERTE" ? color.new(color.green, 0) : fuerza == "DEBIL" ? color.new(color.orange, 0) : color.new(color.gray, 0)
+fractalCol = fractalLongOk ? color.new(color.green, 0) : fractalShortOk ? color.new(color.red, 0) : color.new(color.gray, 0)
+ema50Col = ema50LongOk ? color.new(color.green, 0) : ema50ShortOk ? color.new(color.red, 0) : color.new(color.gray, 0)
+mfCol = manosFuertesLong ? color.new(color.aqua, 0) : manosFuertesShort ? color.new(color.fuchsia, 0) : color.new(color.gray, 0)
 
 if mostrarPanel and barstate.islast
     table.cell(panel, 0, 0, "ESTADO", text_color=color.white, bgcolor=color.new(color.blue, 0), text_size=size.small)
-    table.cell(panel, 1, 0, "AUTO", text_color=color.white, bgcolor=color.new(color.blue, 0), text_size=size.small)
+    table.cell(panel, 1, 0, "AUTO SWING", text_color=color.white, bgcolor=color.new(color.blue, 0), text_size=size.small)
     table.cell(panel, 0, 1, "TF", text_color=color.white, bgcolor=color.new(color.black, 30), text_size=size.small)
     table.cell(panel, 1, 1, str.tostring(tfMin, "#.##") + "m", text_color=color.white, bgcolor=color.new(color.black, 30), text_size=size.small)
     table.cell(panel, 0, 2, "EMAs", text_color=color.white, bgcolor=color.new(color.black, 30), text_size=size.small)
-    table.cell(panel, 1, 2, emaMode, text_color=color.white, bgcolor=color.new(color.black, 30), text_size=size.small)
+    table.cell(panel, 1, 2, emaMode + " + 50/200", text_color=color.white, bgcolor=color.new(color.black, 30), text_size=size.small)
     table.cell(panel, 0, 3, "RSI activo", text_color=color.white, bgcolor=color.new(color.black, 30), text_size=size.small)
     table.cell(panel, 1, 3, str.tostring(rsiLen), text_color=color.white, bgcolor=color.new(color.black, 30), text_size=size.small)
     table.cell(panel, 0, 4, "Tendencia", text_color=color.white, bgcolor=color.new(color.black, 30), text_size=size.small)
     table.cell(panel, 1, 4, direccion, text_color=color.white, bgcolor=dirCol, text_size=size.small)
     table.cell(panel, 0, 5, "Fuerza", text_color=color.white, bgcolor=color.new(color.black, 30), text_size=size.small)
     table.cell(panel, 1, 5, fuerza + (fuerza == "FUERTE" ? "  2x4" : fuerza == "DEBIL" ? "  1x2" : ""), text_color=color.white, bgcolor=fuerzaCol, text_size=size.small)
-    table.cell(panel, 0, 6, "Fase", text_color=color.white, bgcolor=color.new(color.black, 30), text_size=size.small)
-    table.cell(panel, 1, 6, fase, text_color=color.white, bgcolor=color.new(color.black, 30), text_size=size.small)
-    table.cell(panel, 0, 7, "RSI", text_color=color.white, bgcolor=color.new(color.black, 30), text_size=size.small)
-    table.cell(panel, 1, 7, str.tostring(rsi, "#.##"), text_color=color.white, bgcolor=color.new(color.black, 30), text_size=size.small)
+    table.cell(panel, 0, 6, "Fractal W/D/1H", text_color=color.white, bgcolor=color.new(color.black, 30), text_size=size.small)
+    table.cell(panel, 1, 6, fractalDireccion, text_color=color.white, bgcolor=fractalCol, text_size=size.small)
+    table.cell(panel, 0, 7, "W / D / 1H", text_color=color.white, bgcolor=color.new(color.black, 30), text_size=size.small)
+    table.cell(panel, 1, 7, fmtDir(dirW) + " / " + fmtDir(dirD) + " / " + fmtDir(dirH1), text_color=color.white, bgcolor=color.new(color.black, 30), text_size=size.small)
+    table.cell(panel, 0, 8, "EMA50", text_color=color.white, bgcolor=color.new(color.black, 30), text_size=size.small)
+    table.cell(panel, 1, 8, ema50LongOk ? "ALCISTA" : ema50ShortOk ? "BAJISTA" : "NEUTRA", text_color=color.white, bgcolor=ema50Col, text_size=size.small)
+    table.cell(panel, 0, 9, "Manos fuertes", text_color=color.white, bgcolor=color.new(color.black, 30), text_size=size.small)
+    table.cell(panel, 1, 9, manosFuertesLong ? "MF+" : manosFuertesShort ? "MF-" : "-", text_color=color.white, bgcolor=mfCol, text_size=size.small)
+    table.cell(panel, 0, 10, "Fase", text_color=color.white, bgcolor=color.new(color.black, 30), text_size=size.small)
+    table.cell(panel, 1, 10, fase + " | " + fmtFase(faseW) + "/" + fmtFase(faseD) + "/" + fmtFase(faseH1), text_color=color.white, bgcolor=color.new(color.black, 30), text_size=size.small)
+    table.cell(panel, 0, 11, "RSI", text_color=color.white, bgcolor=color.new(color.black, 30), text_size=size.small)
+    table.cell(panel, 1, 11, str.tostring(rsi, "#.##"), text_color=color.white, bgcolor=color.new(color.black, 30), text_size=size.small)
 
 // =====================================================
 // Alertas JSON para webhook
 // =====================================================
 
-alertcondition(longCandidate, title="Alerta LONG Wyckoff EMA RSI v2", message="{\"event_type\":\"signal.long_candidate\",\"signal\":\"LONG\",\"trend\":\"ALCISTA\",\"strength\":\"{{plot(\"FUERZA_LONG\")}}\",\"symbol\":\"{{ticker}}\",\"timeframe\":\"{{interval}}\",\"price\":\"{{close}}\",\"sl\":\"{{plot(\"SL_LONG\")}}\",\"tp\":\"{{plot(\"TP_LONG\")}}\",\"source_module\":\"tradingview.indicador_wyckoff_ema_rsi_v2\",\"severity\":\"info\"}")
-alertcondition(shortCandidate, title="Alerta SHORT Wyckoff EMA RSI v2", message="{\"event_type\":\"signal.short_candidate\",\"signal\":\"SHORT\",\"trend\":\"BAJISTA\",\"strength\":\"{{plot(\"FUERZA_SHORT\")}}\",\"symbol\":\"{{ticker}}\",\"timeframe\":\"{{interval}}\",\"price\":\"{{close}}\",\"sl\":\"{{plot(\"SL_SHORT\")}}\",\"tp\":\"{{plot(\"TP_SHORT\")}}\",\"source_module\":\"tradingview.indicador_wyckoff_ema_rsi_v2\",\"severity\":\"info\"}")
+alertcondition(longCandidate, title="Alerta LONG Wyckoff EMA RSI v2.5", message="{\"event_type\":\"signal.long_candidate\",\"signal\":\"LONG\",\"trend\":\"ALCISTA\",\"strength\":\"{{plot(\"FUERZA_LONG\")}}\",\"fractal_sync\":\"{{plot(\"FRACTAL_SYNC\")}}\",\"fractal_w\":\"{{plot(\"FRACTAL_W\")}}\",\"fractal_d\":\"{{plot(\"FRACTAL_D\")}}\",\"fractal_1h\":\"{{plot(\"FRACTAL_1H\")}}\",\"ema50_filter\":\"{{plot(\"EMA50_FILTER\")}}\",\"strong_hands\":\"{{plot(\"MANOS_FUERTES\")}}\",\"symbol\":\"{{ticker}}\",\"timeframe\":\"{{interval}}\",\"price\":\"{{close}}\",\"sl\":\"{{plot(\"SL_LONG\")}}\",\"tp\":\"{{plot(\"TP_LONG\")}}\",\"source_module\":\"tradingview.indicador_wyckoff_ema_rsi_v2\",\"severity\":\"info\",\"reason\":\"wyckoff_ema_rsi_fractal_swing_long\"}")
+alertcondition(shortCandidate, title="Alerta SHORT Wyckoff EMA RSI v2.5", message="{\"event_type\":\"signal.short_candidate\",\"signal\":\"SHORT\",\"trend\":\"BAJISTA\",\"strength\":\"{{plot(\"FUERZA_SHORT\")}}\",\"fractal_sync\":\"{{plot(\"FRACTAL_SYNC\")}}\",\"fractal_w\":\"{{plot(\"FRACTAL_W\")}}\",\"fractal_d\":\"{{plot(\"FRACTAL_D\")}}\",\"fractal_1h\":\"{{plot(\"FRACTAL_1H\")}}\",\"ema50_filter\":\"{{plot(\"EMA50_FILTER\")}}\",\"strong_hands\":\"{{plot(\"MANOS_FUERTES\")}}\",\"symbol\":\"{{ticker}}\",\"timeframe\":\"{{interval}}\",\"price\":\"{{close}}\",\"sl\":\"{{plot(\"SL_SHORT\")}}\",\"tp\":\"{{plot(\"TP_SHORT\")}}\",\"source_module\":\"tradingview.indicador_wyckoff_ema_rsi_v2\",\"severity\":\"info\",\"reason\":\"wyckoff_ema_rsi_fractal_swing_short\"}")
