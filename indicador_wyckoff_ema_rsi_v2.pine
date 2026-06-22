@@ -209,7 +209,7 @@ fractalEntradaLongOk = not exigirFractalidadSwing or fractalLongOk
 fractalEntradaShortOk = not exigirFractalidadSwing or fractalShortOk
 
 fmtSesgo(sesgo) =>
-    sesgo == 1 ? "BAJISTA" : sesgo == -1 ? "ALCISTA" : sesgo == 2 ? "Alcista flojo" : sesgo == -2 ? "Bajista flojo" : "SIN SESGO"
+    sesgo == 1 ? "ALCISTA" : sesgo == -1 ? "BAJISTA" : sesgo == 2 ? "Alcista flojo" : sesgo == -2 ? "Bajista flojo" : "SIN SESGO"
 
 colorSesgo(sesgo) =>
     sesgo == 1 ? color.new(color.green, 0) : sesgo == -1 ? color.new(color.red, 0) : sesgo == 2 ? color.new(color.green, 55) : sesgo == -2 ? color.new(color.red, 55) : color.new(color.gray, 0)
