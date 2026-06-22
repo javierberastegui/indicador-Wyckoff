@@ -20,3 +20,10 @@ Cuando exista código funcional, añadir validaciones específicas para señales
 - Deuda: la detección automática por `timeframe.in_seconds() / 60` debe confirmarse en TradingView para 15m y 1h.
 - Impacto: hasta compilar en plataforma no se puede cerrar evidencia de que el panel/Data Window muestran correctamente AUTO, EMAs activas y RSI14 en todos los timeframes esperados.
 - Siguiente acción: compilar indicador y helper RSI en TradingView, revisar `BTCUSDT.P` BingX 15m/1h y registrar capturas.
+
+### 2026-06-22 — validación fractalidad swing v2.5.0 pendiente en TradingView
+- Dominio: `tradingview`, `core_indicador`, `senales`, `alertas`, `validacion`.
+- Deuda: la puerta W/D/1H con `request.security()` y la función `f_estadoFractal()` no puede validarse completamente fuera de TradingView.
+- Impacto: hasta compilar en plataforma no se puede confirmar que el panel `AUTO SWING`, los marcadores `SYNC+`/`SYNC-`, `MF+`/`MF-` y los plots de Data Window funcionen sin errores.
+- Impacto: la estrategia v2.2 no replica la puerta fractal v2.5.0, por lo que Strategy Tester no debe mezclarse con las señales overlay actuales.
+- Siguiente acción: compilar `indicador_wyckoff_ema_rsi_v2.pine`, revisar `BTCUSDT.P` BingX semanal/diario/1h, crear alerta real y decidir si se prepara v2.6.0 para adaptar la estrategia.
