@@ -1,5 +1,5 @@
 //@version=5
-indicator("Indicador Wyckoff + EMA + RSI v2.5.3", shorttitle="Wyckoff EMA RSI v2", overlay=true, max_labels_count=500, max_lines_count=200)
+indicator("Indicador Wyckoff + EMA + RSI v2.5.4", shorttitle="Wyckoff EMA RSI v2", overlay=true, max_labels_count=500, max_lines_count=200)
 
 // =====================================================
 // Inputs visibles minimos
@@ -13,25 +13,25 @@ exigirManosFuertes = input.bool(false, "Exigir manos fuertes/absorcion", group="
 
 // Fractalidad swing
 exigirFractalidadSwing = input.bool(true, "Exigir sincronia semanal/diario/1h", group="Fractalidad swing")
-mostrarFractalidadSwing = input.bool(true, "Mostrar sincronia W/D/1h", group="Fractalidad swing")
-mostrarManosFuertes = input.bool(true, "Mostrar manos fuertes", group="Fractalidad swing")
+mostrarFractalidadSwing = input.bool(false, "Mostrar etiquetas SYNC", group="Fractalidad swing")
+mostrarManosFuertes = input.bool(false, "Mostrar etiquetas manos fuertes", group="Fractalidad swing")
 
 // Visualizacion
-mostrarDivergencias = input.bool(true, "Mostrar divergencias", group="Visualizacion")
-mostrarAbsorciones = input.bool(true, "Mostrar absorciones", group="Visualizacion")
-mostrarCinta = input.bool(true, "Mostrar cinta de tendencia", group="Visualizacion")
+mostrarDivergencias = input.bool(false, "Mostrar divergencias", group="Visualizacion")
+mostrarAbsorciones = input.bool(false, "Mostrar absorciones", group="Visualizacion")
+mostrarCinta = input.bool(false, "Mostrar cinta de tendencia", group="Visualizacion")
 mostrarPanel = input.bool(true, "Mostrar panel swing", group="Visualizacion")
-mostrarCrucesEma = input.bool(true, "Mostrar cruces EMA", group="Visualizacion")
-mostrarZonasWyckoff = input.bool(true, "Mostrar zonas Wyckoff", group="Visualizacion")
-mostrarRetrocesos = input.bool(true, "Mostrar retrocesos", group="Visualizacion")
+mostrarCrucesEma = input.bool(false, "Mostrar cruces EMA", group="Visualizacion")
+mostrarZonasWyckoff = input.bool(false, "Mostrar zonas Wyckoff", group="Visualizacion")
+mostrarRetrocesos = input.bool(false, "Mostrar retrocesos PB", group="Visualizacion")
 mostrarTextoDivAbsOverlay = input.bool(false, "Mostrar texto DIV/ABS en overlay", group="Visualizacion")
-mostrarNombreZonaWyckoff = input.bool(true, "Mostrar nombre zona Wyckoff al cambiar", group="Visualizacion")
+mostrarNombreZonaWyckoff = input.bool(false, "Mostrar nombre zona Wyckoff al cambiar", group="Visualizacion")
 
 // Estilo EMAs
 mostrarEmaOperativa = input.bool(false, "Mostrar EMA rapida/lenta", group="Estilo EMAs")
 mostrarEmaMedia = input.bool(false, "Mostrar EMA media", group="Estilo EMAs")
 mostrarEma50 = input.bool(true, "Mostrar EMA 50", group="Estilo EMAs")
-mostrarEma200 = input.bool(true, "Mostrar EMA 200", group="Estilo EMAs")
+mostrarEma200 = input.bool(false, "Mostrar EMA 200", group="Estilo EMAs")
 colorEmaRapida = input.color(color.green, "Color EMA rapida", group="Estilo EMAs")
 colorEmaMedia = input.color(color.orange, "Color EMA media", group="Estilo EMAs")
 colorEmaLenta = input.color(color.red, "Color EMA lenta", group="Estilo EMAs")
@@ -194,7 +194,7 @@ f_estadoFractal() =>
     _dir = _trendLong and _ema50Long and _rsiLong and not _mercadoLateral ? 1 : _trendShort and _ema50Short and _rsiShort and not _mercadoLateral ? -1 : 0
     _ema50Dir = _ema50Long ? 1 : _ema50Short ? -1 : 0
     _faseCode = _mercadoLateral and close <= _ema200 ? 1 : _mercadoLateral and close > _ema200 ? 2 : not _mercadoLateral and _trendLong ? 3 : not _mercadoLateral and _trendShort ? -3 : 0
-    _sesgo = _trendLong and _ema50Long ? 1 : _trendShort and _ema50Short ? -1 : close > _ema200 ? 2 : close < _ema200 ? -2 : 0
+    _sesgo = _dir == 1 ? 1 : _dir == -1 ? -1 : _trendLong or (close > _ema200 and _ema50Long) ? 2 : _trendShort or (close < _ema200 and _ema50Short) ? -2 : 0
     [_dir, _ema50Dir, _faseCode, _rsi, _ratioRangoAtr, _sesgo]
 
 [dirW, ema50W, faseW, rsiW, ratioW, sesgoW] = request.security(syminfo.tickerid, "W", f_estadoFractal(), barmerge.gaps_off, barmerge.lookahead_off)
@@ -209,13 +209,16 @@ fractalEntradaLongOk = not exigirFractalidadSwing or fractalLongOk
 fractalEntradaShortOk = not exigirFractalidadSwing or fractalShortOk
 
 fmtSesgo(sesgo) =>
-    sesgo == 1 ? "ALCISTA" : sesgo == -1 ? "BAJISTA" : sesgo == 2 ? "Alcista flojo" : sesgo == -2 ? "Bajista flojo" : "SIN SESGO"
+    sesgo == 1 ? "BAJISTA" : sesgo == -1 ? "ALCISTA" : sesgo == 2 ? "Alcista flojo" : sesgo == -2 ? "Bajista flojo" : "SIN SESGO"
 
 colorSesgo(sesgo) =>
     sesgo == 1 ? color.new(color.green, 0) : sesgo == -1 ? color.new(color.red, 0) : sesgo == 2 ? color.new(color.green, 55) : sesgo == -2 ? color.new(color.red, 55) : color.new(color.gray, 0)
 
 fmtTf(tfMinActual) =>
     tfMinActual >= 10080 ? str.tostring(tfMinActual / 10080, "#") + "W" : tfMinActual >= 1440 ? str.tostring(tfMinActual / 1440, "#") + "D" : tfMinActual >= 60 ? str.tostring(tfMinActual / 60, "#") + "H" : str.tostring(tfMinActual, "#") + "m"
+
+rsiLectura(valor) =>
+    valor >= 70 ? "Sobrecompra" : valor <= 30 ? "Sobreventa" : valor > 55 ? "Fuerza alcista" : valor < 45 ? "Fuerza bajista" : "Neutral"
 
 // =====================================================
 // Fuerza de tendencia (divergencia = AVISO, no bloqueo)
@@ -434,32 +437,36 @@ if modoDetallado and shortCandidate
 // Panel swing operativo
 // =====================================================
 
-var table panel = table.new(position.top_right, 2, 8, border_width=1, frame_color=color.new(color.gray, 50), frame_width=1)
+var table panel = table.new(position.top_right, 2, 9, border_width=1, frame_color=color.new(color.gray, 50), frame_width=1)
 
 planTxt = fractalLongOk ? "BUSCAR LONG 1H" : fractalShortOk ? "BUSCAR SHORT 1H" : "ESPERAR"
 planCol = fractalLongOk ? color.new(color.green, 0) : fractalShortOk ? color.new(color.red, 0) : color.new(color.orange, 0)
+comentarioSwing = fractalLongOk ? "Alineado: esperar PB+/LONG" : fractalShortOk ? "Alineado: esperar PB-/SHORT" : sesgoD < 0 and sesgoH1 > 0 ? "Rebote 1H contra diario bajista" : sesgoD > 0 and sesgoH1 < 0 ? "Retroceso 1H contra diario alcista" : sesgoW < 0 and sesgoD < 0 ? "Falta setup 1H bajista" : sesgoW > 0 and sesgoD > 0 ? "Falta setup 1H alcista" : "Sin sincronia: no forzar"
+comentarioCol = fractalLongOk ? color.new(color.green, 0) : fractalShortOk ? color.new(color.red, 0) : color.new(color.gray, 0)
 ema50Txt = ema50LongOk ? "ALCISTA" : ema50ShortOk ? "BAJISTA" : "NEUTRA"
 ema50Col = ema50LongOk ? color.new(color.green, 0) : ema50ShortOk ? color.new(color.red, 0) : color.new(color.gray, 0)
-comentarioSwing = fractalLongOk ? "Alineado: buscar PB+/LONG" : fractalShortOk ? "Alineado: buscar PB-/SHORT" : sesgoD < 0 and sesgoH1 > 0 ? "Rebote 1H contra diario bajista" : sesgoD > 0 and sesgoH1 < 0 ? "Retroceso 1H contra diario alcista" : sesgoW < 0 and sesgoD < 0 ? "Falta setup 1H bajista" : sesgoW > 0 and sesgoD > 0 ? "Falta setup 1H alcista" : "Sin sincronia: no forzar"
-comentarioCol = fractalLongOk ? color.new(color.green, 0) : fractalShortOk ? color.new(color.red, 0) : color.new(color.gray, 0)
+rsiTxt = str.tostring(rsi, "#.##") + " | " + rsiLectura(rsi)
+rsiCol = rsi >= 70 ? color.new(color.orange, 0) : rsi <= 30 ? color.new(color.orange, 0) : rsi > 55 ? color.new(color.green, 0) : rsi < 45 ? color.new(color.red, 0) : color.new(color.gray, 0)
 
 if mostrarPanel and barstate.islast
     table.cell(panel, 0, 0, "SWING", text_color=color.white, bgcolor=color.new(color.blue, 0), text_size=size.small)
-    table.cell(panel, 1, 0, fmtTf(tfMin) + " | W contexto | 1H setup", text_color=color.white, bgcolor=color.new(color.blue, 0), text_size=size.small)
+    table.cell(panel, 1, 0, fmtTf(tfMin) + " | W contexto | D mando | 1H setup", text_color=color.white, bgcolor=color.new(color.blue, 0), text_size=size.small)
     table.cell(panel, 0, 1, "Plan", text_color=color.white, bgcolor=color.new(color.black, 30), text_size=size.small)
     table.cell(panel, 1, 1, planTxt, text_color=color.white, bgcolor=planCol, text_size=size.small)
-    table.cell(panel, 0, 2, "Semana", text_color=color.white, bgcolor=color.new(color.black, 30), text_size=size.small)
-    table.cell(panel, 1, 2, fmtSesgo(sesgoW), text_color=color.white, bgcolor=colorSesgo(sesgoW), text_size=size.small)
-    table.cell(panel, 0, 3, "Diario", text_color=color.white, bgcolor=color.new(color.black, 30), text_size=size.small)
-    table.cell(panel, 1, 3, fmtSesgo(sesgoD), text_color=color.white, bgcolor=colorSesgo(sesgoD), text_size=size.small)
-    table.cell(panel, 0, 4, "1H setup", text_color=color.white, bgcolor=color.new(color.black, 30), text_size=size.small)
-    table.cell(panel, 1, 4, fmtSesgo(sesgoH1), text_color=color.white, bgcolor=colorSesgo(sesgoH1), text_size=size.small)
-    table.cell(panel, 0, 5, "Wyckoff", text_color=color.white, bgcolor=color.new(color.black, 30), text_size=size.small)
-    table.cell(panel, 1, 5, faseOperativa, text_color=color.white, bgcolor=color.new(color.black, 30), text_size=size.small)
+    table.cell(panel, 0, 2, "Comentario", text_color=color.white, bgcolor=color.new(color.black, 30), text_size=size.small)
+    table.cell(panel, 1, 2, comentarioSwing, text_color=color.white, bgcolor=comentarioCol, text_size=size.small)
+    table.cell(panel, 0, 3, "Semana", text_color=color.white, bgcolor=color.new(color.black, 30), text_size=size.small)
+    table.cell(panel, 1, 3, fmtSesgo(sesgoW), text_color=color.white, bgcolor=colorSesgo(sesgoW), text_size=size.small)
+    table.cell(panel, 0, 4, "Diario", text_color=color.white, bgcolor=color.new(color.black, 30), text_size=size.small)
+    table.cell(panel, 1, 4, fmtSesgo(sesgoD), text_color=color.white, bgcolor=colorSesgo(sesgoD), text_size=size.small)
+    table.cell(panel, 0, 5, "1H setup", text_color=color.white, bgcolor=color.new(color.black, 30), text_size=size.small)
+    table.cell(panel, 1, 5, fmtSesgo(sesgoH1), text_color=color.white, bgcolor=colorSesgo(sesgoH1), text_size=size.small)
     table.cell(panel, 0, 6, "EMA50", text_color=color.white, bgcolor=color.new(color.black, 30), text_size=size.small)
     table.cell(panel, 1, 6, ema50Txt, text_color=color.white, bgcolor=ema50Col, text_size=size.small)
-    table.cell(panel, 0, 7, "Comentario", text_color=color.white, bgcolor=color.new(color.black, 30), text_size=size.small)
-    table.cell(panel, 1, 7, comentarioSwing, text_color=color.white, bgcolor=comentarioCol, text_size=size.small)
+    table.cell(panel, 0, 7, "RSI", text_color=color.white, bgcolor=color.new(color.black, 30), text_size=size.small)
+    table.cell(panel, 1, 7, rsiTxt, text_color=color.white, bgcolor=rsiCol, text_size=size.small)
+    table.cell(panel, 0, 8, "Wyckoff", text_color=color.white, bgcolor=color.new(color.black, 30), text_size=size.small)
+    table.cell(panel, 1, 8, faseOperativa, text_color=color.white, bgcolor=color.new(color.black, 30), text_size=size.small)
 
 // =====================================================
 // Alertas JSON para webhook
