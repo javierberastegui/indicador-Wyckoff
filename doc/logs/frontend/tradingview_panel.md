@@ -39,7 +39,7 @@ No hay Pine Script confirmado en esta base documental.
 ### 2026-06-02 — v2.3.1 limpieza de ruido visual
 - Dominio: `tradingview`.
 - Cambio: soporte/resistencia sigue desactivado por defecto, limita 4 líneas por lado, evita pivots duplicados cercanos por ATR y permite ocultar líneas alejadas del precio actual.
-- Cambio: divergencias/absorciones en overlay quedan como iconos pequeños sin texto por defecto; `mostrarTextoDivAbsOverlay` permite reactivar texto si se necesita depurar.
+- Cambio: divergencias/absorciones en overlay quedan como iconos pequeños sin texto por defecto; `mostrarTextoDivAbsOverlay` permite reactivar texto si se necesita.
 - Cambio: zonas Wyckoff añaden etiquetas compactas solo en cambios de fase (`ACUM`, `DIST`, `MARKUP`, `MARKDOWN`) para que el fondo no se perciba solo como rojo/verde.
 - Cambio: README explica `PB+`/`PB-` y la interpretación del panel de estado.
 - Validación: documentación viva y revisión de diff ejecutadas localmente; TradingView debe confirmar compilación y legibilidad real.
@@ -53,3 +53,12 @@ No hay Pine Script confirmado en esta base documental.
 - Cambio: la selección automática conserva 15m con EMAs 9/21 + RSI14 y 1h/intermedios con EMAs 10/20 + RSI14.
 - Validación: documentación viva y revisión de diff ejecutadas localmente; TradingView debe confirmar compilación y legibilidad real.
 - Pendiente: validar en TradingView que el panel refleje correctamente 15m y 1h, y registrar capturas.
+
+### 2026-06-22 — v2.5.0 panel swing fractal
+- Dominio: `tradingview`, `core_indicador`, `senales`, `eventos`, `alertas`.
+- Cambio: el panel cambia a `AUTO SWING` y añade filas para `Fractal W/D/1H`, dirección `W / D / 1H`, EMA50, manos fuertes y fases local/MTF.
+- Cambio: el overlay añade EMA50 visible, marcadores `SYNC+`/`SYNC-` al sincronizar fractalidad y marcadores `MF+`/`MF-` para manos fuertes.
+- Cambio: Data Window añade plots invisibles para `FRACTAL_SYNC`, `FRACTAL_W`, `FRACTAL_D`, `FRACTAL_1H`, `EMA50_FILTER` y `MANOS_FUERTES`.
+- Cambio: las alertas LONG/SHORT conservan `alertcondition()` central, pero su JSON incorpora fractalidad, EMA50, manos fuertes y `reason`.
+- Validación: pendiente de compilación real en TradingView; no hay backtest ni forward test registrado.
+- Pendiente: revisar legibilidad del panel en 1h, confirmar que `NO SYNC` bloquea señales y capturar payload real de alerta.
