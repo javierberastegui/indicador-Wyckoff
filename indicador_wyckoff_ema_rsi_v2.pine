@@ -1,5 +1,5 @@
 //@version=5
-indicator("Indicador Wyckoff + EMA + RSI v2.5.0", shorttitle="Wyckoff EMA RSI v2", overlay=true, max_labels_count=500, max_lines_count=200)
+indicator("Indicador Wyckoff + EMA + RSI v2.5.1", shorttitle="Wyckoff EMA RSI v2", overlay=true, max_labels_count=500, max_lines_count=200)
 
 // =====================================================
 // Inputs visibles minimos
@@ -26,6 +26,13 @@ mostrarZonasWyckoff = input.bool(true, "Mostrar zonas Wyckoff", group="Visualiza
 mostrarRetrocesos = input.bool(true, "Mostrar retrocesos", group="Visualizacion")
 mostrarTextoDivAbsOverlay = input.bool(false, "Mostrar texto DIV/ABS en overlay", group="Visualizacion")
 mostrarNombreZonaWyckoff = input.bool(true, "Mostrar nombre zona Wyckoff al cambiar", group="Visualizacion")
+
+// Colores EMAs
+colorEmaRapida = input.color(color.green, "EMA rapida", group="Colores EMAs")
+colorEmaMedia = input.color(color.orange, "EMA media", group="Colores EMAs")
+colorEmaLenta = input.color(color.red, "EMA lenta", group="Colores EMAs")
+colorEma50 = input.color(color.yellow, "EMA 50 filtro fuerte", group="Colores EMAs")
+colorEma200 = input.color(color.blue, "EMA 200", group="Colores EMAs")
 
 // Soporte / resistencia opcional y limpio
 mostrarSoporteResistencia = input.bool(false, "Mostrar soporte/resistencia", group="Soporte / resistencia")
@@ -292,11 +299,11 @@ plot(rsiLen, "RSI_LEN_AUTO", color=color.new(color.gray, 100), display=display.d
 // Visualizacion: EMAs + cinta de tendencia
 // =====================================================
 
-pFast = plot(emaFast, "EMA rapida", color=color.new(color.green, 0), linewidth=2)
-plot(emaMode == "5/8/13" ? ema8 : na, "EMA media", color=color.new(color.orange, 0), linewidth=1)
-pSlow = plot(emaSlow, "EMA lenta", color=color.new(color.red, 0), linewidth=2)
-plot(ema50, "EMA 50 filtro fuerte", color=color.new(color.yellow, 0), linewidth=2)
-plot(ema200, "EMA 200", color=color.new(color.blue, 0), linewidth=2)
+pFast = plot(emaFast, "EMA rapida", color=colorEmaRapida, linewidth=2)
+plot(emaMode == "5/8/13" ? ema8 : na, "EMA media", color=colorEmaMedia, linewidth=1)
+pSlow = plot(emaSlow, "EMA lenta", color=colorEmaLenta, linewidth=2)
+plot(ema50, "EMA 50 filtro fuerte", color=colorEma50, linewidth=2)
+plot(ema200, "EMA 200", color=colorEma200, linewidth=2)
 
 // Cinta: verde alcista / rojo bajista; mas opaca = FUERTE, mas tenue = DEBIL
 cintaCol = not mostrarCinta ? na : tendenciaFuerteLong ? color.new(color.green, 75) : tendenciaDebilLong ? color.new(color.green, 90) : tendenciaFuerteShort ? color.new(color.red, 75) : tendenciaDebilShort ? color.new(color.red, 90) : na
