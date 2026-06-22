@@ -61,3 +61,14 @@
 - Validación: `python3 scripts/validar_documentacion_viva.py` y `git diff --check` ejecutados correctamente; compilación real de Pine queda pendiente en TradingView.
 - Evidencia: cambios en `indicador_wyckoff_ema_rsi_v2.pine`, `rsi_panel_wyckoff_helper.pine`, `README.md`, `CHANGELOG.md` y documentación viva; no se tocó `estrategia_wyckoff_ema_rsi_v2.pine`.
 - Pendiente: compilar indicador/helper en TradingView y confirmar selección automática en 15m y 1h sobre `BTCUSDT.P` BingX.
+
+### 2026-06-22 — v2.5.0 fractalidad swing W/D/1H
+- Dominio: `core_indicador`, `wyckoff`, `emas`, `rsi`, `senales`, `tradingview`, `eventos`, `alertas`, `documentacion`.
+- Cambio: `indicador_wyckoff_ema_rsi_v2.pine` pasa a v2.5.0 con puerta de fractalidad swing semanal/diario/1h mediante `request.security()`; con `exigirFractalidadSwing=true`, LONG/SHORT quedan bloqueados si W/D/1H no están sincronizados.
+- Cambio: EMA50 pasa a filtro fuerte obligatorio para señales y fuerza de tendencia; se mantiene EMA200 como filtro estructural base.
+- Cambio: añadida lectura aproximada de manos fuertes por absorción, barrida, volumen y esfuerzo/resultado, con marcadores `MF+`/`MF-` y filtro opcional `exigirManosFuertes`.
+- Cambio: panel ampliado con `AUTO SWING`, fractal W/D/1H, dirección W/D/1H, EMA50, manos fuertes y fases locales/MTF; Data Window expone `FRACTAL_SYNC`, `FRACTAL_W`, `FRACTAL_D`, `FRACTAL_1H`, `EMA50_FILTER` y `MANOS_FUERTES`.
+- Cambio: alertas LONG/SHORT siguen en capa central `alertcondition()` y añaden campos de fractalidad, EMA50, manos fuertes y `reason`.
+- Validación: revisión estructural aplicada; compilación real Pine y validación documental local quedan pendientes en entorno del repo.
+- Evidencia: cambios en `indicador_wyckoff_ema_rsi_v2.pine`, `README.md`, `CHANGELOG.md`, `doc/estado_actual.md` y logs/relevos por dominio.
+- Pendiente: compilar indicador en TradingView, revisar `BTCUSDT.P` BingX semanal/diario/1h, crear alerta real y decidir si se adapta la estrategia a la puerta fractal para backtest exacto.
