@@ -4,11 +4,12 @@
 `indicador-Wyckoff`
 
 ## Estado operativo
-Documentación viva aplicada y versión funcional v2.5.0 preparada en `main`: indicador overlay con modo automático swing, fractalidad semanal/diario/1h, EMA50 como filtro fuerte, lectura de manos fuertes y alertas JSON enriquecidas. La estrategia separada sigue en lógica v2.2 y no se tocó en esta fase.
+Documentación viva aplicada y versión funcional v2.6.0 preparada en `main`: indicador overlay adaptado a DayTrading con macro `1D`, lupa `1H` y pistola de entrada `5m`. Mantiene Wyckoff simplificado, EMA200, EMA50, RSI estructural, lectura de manos fuertes y alertas JSON centralizadas. La estrategia separada sigue en lógica v2.2 y no se tocó en esta fase.
 
 ## Arquitectura viva actual
 - indicador Wyckoff + EMA + RSI en Pine Script con selección automática de EMAs/RSI por timeframe
-- capa swing multi-timeframe con `request.security()` para semanal (`W`), diario (`D`) y 1h (`60`)
+- capa DayTrading multi-timeframe con `request.security()` para diario (`D`), 1h (`60`) y 5m (`5`)
+- gráfico 5m como pistola operativa de entrada cuando `exigirGraficoEntrada5m=true`
 - EMA200 como filtro estructural base
 - EMA50 como filtro fuerte operativo obligatorio para señales
 - estrategia de backtesting separada con TP parcial configurable, runner a breakeven y trailing manual ATR con ratchet
@@ -20,7 +21,7 @@ Documentación viva aplicada y versión funcional v2.5.0 preparada en `main`: in
 - motor de señales long/short
 - eventos estructurados representados como señales candidatas
 - capa central de alertas mediante `alertcondition()`
-- validación/backtesting pendiente en TradingView; v2.5.0 pendiente de compilación en plataforma
+- validación/backtesting pendiente en TradingView; v2.6.0 pendiente de compilación en plataforma
 - documentación operativa viva
 
 ## Archivos funcionales vigentes
@@ -37,20 +38,23 @@ Documentación viva aplicada y versión funcional v2.5.0 preparada en `main`: in
 - `doc/logs/historico.md` no es bitácora principal.
 - La detección Wyckoff queda documentada como simplificada.
 - El RSI se usa como confirmador estructural: nivel 50, pendiente, divergencia simple y absorción aproximada.
-- El indicador v2.5.0 mantiene modo automático: `<=15m` usa EMAs 9/21 + RSI14; `>=60m` e intermedios usan EMAs 10/20 + RSI14.
-- Para swing trading, `exigirFractalidadSwing=true` bloquea señales si semanal, diario y 1h no están sincronizados a favor.
+- El indicador v2.6.0 mantiene modo automático: `5m` usa EMAs 5/8/13 + RSI14; `>5m y <=15m` usa EMAs 9/21 + RSI14; el resto usa EMAs 10/20 + RSI14.
+- Para DayTrading, `exigirFractalidadDayTrading=true` bloquea señales si diario, 1h y 5m no están alineados a favor.
+- Para evitar entradas desde la lupa o macro, `exigirGraficoEntrada5m=true` bloquea LONG/SHORT si el gráfico actual no es 5m.
 - La EMA50 es filtro fuerte obligatorio junto a EMA200: precio y pendiente deben ir a favor.
 - La lectura de manos fuertes se muestra con `MF+`/`MF-` y puede exigirse con `exigirManosFuertes`, pero queda desactivada por defecto para no bloquear continuaciones limpias.
-- Las alertas siguen centralizadas en `alertcondition()` y añaden campos de fractalidad, EMA50, manos fuertes y `reason`.
-- La estrategia mantiene entradas/salidas previas y no incorpora todavía la puerta fractal v2.5.0.
+- Las alertas siguen centralizadas en `alertcondition()` y añaden campos de DayTrading, EMA50, manos fuertes y `reason`.
+- La estrategia mantiene entradas/salidas previas y no incorpora todavía la puerta DayTrading v2.6.0.
 
 ## Pendiente inmediato
-1. Compilar `indicador_wyckoff_ema_rsi_v2.pine` en TradingView y revisar modo AUTO SWING, panel y Data Window.
-2. Validar que `request.security()` no marca errores en semanal, diario y 1h.
-3. Verificar en `BTCUSDT.P` BingX semanal/diario/1h que `FRACTAL_SYNC`, `FRACTAL_W`, `FRACTAL_D` y `FRACTAL_1H` cambian correctamente.
-4. Revisar que EMA50 aparece en overlay y que `EMA50_FILTER` devuelve `1`, `-1` o `0`.
-5. Revisar marcadores `SYNC+`, `SYNC-`, `MF+` y `MF-`.
-6. Confirmar que no hay señales LONG/SHORT si `exigirFractalidadSwing=true` y el panel marca `NO SYNC`.
-7. Crear alerta real en TradingView y capturar payload JSON con campos de fractalidad.
-8. Decidir en otra fase si se adapta `estrategia_wyckoff_ema_rsi_v2.pine` a v2.5.0 para backtest exacto.
-9. Registrar capturas, rango temporal, métricas y resultado en logs antes de hablar de rentabilidad.
+1. Compilar `indicador_wyckoff_ema_rsi_v2.pine` en TradingView y revisar modo DayTrading, panel y Data Window.
+2. Validar que `request.security()` no marca errores en diario, 1h y 5m.
+3. Verificar en `BTCUSDT.P` BingX diario/1h/5m que `DAYTRADING_SYNC`, `MACRO_1D`, `LUPA_1H`, `PISTOLA_5M` y `ENTRY_TF_OK` cambian correctamente.
+4. Confirmar que el panel muestra `CAMBIAR A 5m` cuando el indicador se carga en otro timeframe.
+5. Revisar que EMA50 aparece en overlay y que `EMA50_FILTER` devuelve `1`, `-1` o `0`.
+6. Revisar marcadores `DT+`, `DT-`, `MF+` y `MF-` si se activan.
+7. Confirmar que no hay señales LONG/SHORT si `exigirFractalidadDayTrading=true` y el panel marca `ESPERAR`.
+8. Crear alerta real en TradingView y capturar payload JSON con campos DayTrading.
+9. Ejecutar `python3 scripts/validar_documentacion_viva.py` en clon local.
+10. Decidir si se adapta `estrategia_wyckoff_ema_rsi_v2.pine` a v2.6.0 para backtest exacto.
+11. Registrar capturas, rango temporal, métricas y resultado en logs antes de hablar de rentabilidad.
