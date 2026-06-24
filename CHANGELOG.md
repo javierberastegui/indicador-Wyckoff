@@ -1,5 +1,27 @@
 # Changelog
 
+## [2.6.0] - 2026-06-24
+
+### Added
+- Adaptado `indicador_wyckoff_ema_rsi_v2.pine` a modo DayTrading con puerta fija `1D` macro, `1H` lupa y `5m` pistola usando `request.security()`.
+- Nuevo grupo visible `Fractalidad day trading` con `exigirFractalidadDayTrading`, `exigirGraficoEntrada5m`, `mostrarFractalidadDayTrading` y `mostrarManosFuertes`.
+- Bloqueo operativo opcional para emitir señales solo cuando el gráfico actual es 5m.
+- Panel DayTrading con plan, comentario, macro 1D, lupa 1H, pistola 5m, estado del gráfico, EMA50, RSI y Wyckoff local.
+- Data Window con `DAYTRADING_SYNC`, `MACRO_1D`, `LUPA_1H`, `PISTOLA_5M`, `ENTRY_TF_OK`, `EMA50_FILTER` y `MANOS_FUERTES`.
+- Marcadores opcionales `DT+` y `DT-` para cambios de sincronía DayTrading.
+
+### Changed
+- El flujo principal deja de ser swing W/D/1H y pasa a DayTrading 1D/1H/5m.
+- En 5m el modo automático usa EMAs `5/8/13`, RSI14, lookback lateral 14 y ratio rango/ATR 3.8 para una pistola más reactiva.
+- Las señales candidatas LONG/SHORT exigen `graficoEntradaOk` y puerta DayTrading si los filtros quedan activos por defecto.
+- Las alertas JSON siguen centralizadas en `alertcondition()`, pero sustituyen campos swing por `daytrading_sync`, `macro_1d`, `lupa_1h`, `pistola_5m` y `entry_tf_ok`.
+- No se tocó `estrategia_wyckoff_ema_rsi_v2.pine`; queda pendiente adaptar la estrategia si se quiere backtest exacto de la puerta DayTrading v2.6.0.
+
+### Tests
+- Revisión estructural del Pine Script aplicada antes del cambio.
+- Compilación real de Pine Script sigue pendiente en TradingView.
+- Validación documental local no ejecutada desde este entorno por no disponer de clon completo con conectividad; debe ejecutarse `python3 scripts/validar_documentacion_viva.py` en clon local.
+
 ## [2.5.3] - 2026-06-22
 
 ### Changed
