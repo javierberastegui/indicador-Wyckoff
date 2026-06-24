@@ -62,3 +62,14 @@ No hay Pine Script confirmado en esta base documental.
 - Cambio: las alertas LONG/SHORT conservan `alertcondition()` central, pero su JSON incorpora fractalidad, EMA50, manos fuertes y `reason`.
 - Validación: pendiente de compilación real en TradingView; no hay backtest ni forward test registrado.
 - Pendiente: revisar legibilidad del panel en 1h, confirmar que `NO SYNC` bloquea señales y capturar payload real de alerta.
+
+### 2026-06-24 — v2.6.0 panel DayTrading
+- Dominio: `tradingview`, `core_indicador`, `senales`, `eventos`, `alertas`.
+- Cambio: el panel cambia a `DAYTRADING` y muestra el flujo `1D macro | 1H lupa | 5m pistola`.
+- Cambio: añadidas filas `Plan`, `Comentario`, `Macro 1D`, `Lupa 1H`, `Pistola 5m`, `Grafico`, `EMA50`, `RSI` y `Wyckoff`.
+- Cambio: el panel avisa `CAMBIAR A 5m` cuando `exigirGraficoEntrada5m=true` y el indicador se carga en otro timeframe.
+- Cambio: el overlay sustituye marcadores `SYNC+`/`SYNC-` por `DT+`/`DT-` para sincronía DayTrading.
+- Cambio: Data Window añade `DAYTRADING_SYNC`, `MACRO_1D`, `LUPA_1H`, `PISTOLA_5M`, `ENTRY_TF_OK`, `EMA50_FILTER` y `MANOS_FUERTES`.
+- Cambio: las alertas LONG/SHORT conservan `alertcondition()` central, pero su JSON incorpora campos de macro/lupa/pistola y estado del timeframe de entrada.
+- Validación: pendiente de compilación real en TradingView; no hay backtest ni forward test registrado.
+- Pendiente: revisar legibilidad del panel en 1D/1H/5m, confirmar bloqueo fuera de 5m, confirmar señales en 5m y capturar payload real de alerta.
