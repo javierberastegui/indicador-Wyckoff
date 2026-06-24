@@ -83,3 +83,14 @@
 - Validación: revisión estructural aplicada; compilación real Pine queda pendiente en TradingView.
 - Evidencia: cambios en `indicador_wyckoff_ema_rsi_v2.pine` y `CHANGELOG.md`.
 - Pendiente: compilar en TradingView y revisar visualmente el panel en BTCUSDT.P diario, semanal y 1H.
+
+### 2026-06-24 — v2.6.0 DayTrading 1D/1H/5m
+- Dominio: `core_indicador`, `wyckoff`, `emas`, `rsi`, `senales`, `tradingview`, `eventos`, `alertas`, `documentacion`.
+- Cambio: `indicador_wyckoff_ema_rsi_v2.pine` pasa a v2.6.0 con puerta DayTrading: macro `1D`, lupa `1H` y pistola `5m` mediante `request.security()`.
+- Cambio: el modo automático usa EMAs 5/8/13 en 5m, mantiene 9/21 hasta 15m y 10/20 en timeframes superiores/intermedios.
+- Cambio: añadido bloqueo `exigirGraficoEntrada5m=true` para evitar señales LONG/SHORT fuera del gráfico de entrada 5m.
+- Cambio: panel operativo cambia de swing a DayTrading con plan, comentario, macro 1D, lupa 1H, pistola 5m y estado del gráfico.
+- Cambio: Data Window y alertas sustituyen campos W/D/1H por `DAYTRADING_SYNC`, `MACRO_1D`, `LUPA_1H`, `PISTOLA_5M` y `ENTRY_TF_OK`.
+- Validación: revisión estructural del cambio aplicada; no se pudo compilar Pine ni ejecutar validación documental local desde este entorno por falta de clon completo con conectividad.
+- Evidencia: commits en `main` actualizan `indicador_wyckoff_ema_rsi_v2.pine`, `README.md`, `CHANGELOG.md`, `doc/estado_actual.md` y logs/relevos por dominio.
+- Pendiente: compilar en TradingView, revisar `BTCUSDT.P` BingX diario/1h/5m, crear alerta real y decidir si se adapta la estrategia a v2.6.0 para backtest exacto.
