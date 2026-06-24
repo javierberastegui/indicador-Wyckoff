@@ -29,3 +29,11 @@
 - Cambio: el payload añade `fractal_sync`, `fractal_w`, `fractal_d`, `fractal_1h`, `ema50_filter`, `strong_hands` y `reason`.
 - Validación: pendiente crear alerta real en TradingView y capturar payload recibido.
 - Riesgo: la estrategia separada aún no replica la puerta fractal v2.5.0; no mezclar resultados del Strategy Tester v2.2 con señales overlay v2.5.0 sin documentarlo.
+
+### 2026-06-24 — alertas JSON v2.6.0 DayTrading
+- Evento: `signal.long_candidate` y `signal.short_candidate`.
+- Regla: la capa central sigue representada por `alertcondition()` al final de `indicador_wyckoff_ema_rsi_v2.pine`; no se añaden alertas sueltas para macro, lupa, pistola, EMA50 ni manos fuertes.
+- Canal: TradingView alerts / webhook JSON.
+- Cambio: el payload sustituye campos swing por `daytrading_sync`, `macro_1d`, `lupa_1h`, `pistola_5m`, `entry_tf_ok`, `ema50_filter`, `strong_hands` y `reason`.
+- Validación: pendiente crear alerta real en TradingView y capturar payload recibido.
+- Riesgo: la estrategia separada aún no replica la puerta DayTrading v2.6.0; no mezclar resultados del Strategy Tester v2.2 con señales overlay v2.6.0 sin documentarlo.
